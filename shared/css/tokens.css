@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@300;400;500&family=Instrument+Serif:ital@1&display=swap');
+
+:root {
+  --bg:           #FFFFFF;
+  --surface:      #FFFFFF;
+  --surface-2:    #FBF7F1;
+  --border:       #E7DED2;
+  --border-light: #F1EAE0;
+  --text:         #0E2C2B;
+  --text-2:       #5C5C5C;
+  --text-3:       #8A8A8A;
+  --accent:       #F26B43;
+  --accent-dim:   rgba(242, 107, 67, 0.12);
+  --accent-faint: rgba(242, 107, 67, 0.06);
+  --neutral-faint: rgba(14, 44, 43, 0.05);
+  --amber:        #FBAE40;
+  --amber-dim:    rgba(251, 174, 64, 0.12);
+  --radius:       0;
+  --radius-sm:    0;
+  --radius-round: 999px;
+  --transition:   150ms ease;
+  --nav-height:   60px;
+  --font-ui:      'Bricolage Grotesque', system-ui, sans-serif;
+  --font-serif:   'Instrument Serif', Georgia, serif;
+}

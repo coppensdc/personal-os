@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal OS</title>
+  <link rel="stylesheet" href="shared/css/tokens.css">
+  <link rel="stylesheet" href="shared/css/base.css">
+  <link rel="stylesheet" href="shared/css/components.css">
+  <link rel="stylesheet" href="shared/css/nav.css">
+  <link rel="stylesheet" href="shared/css/backup.css">
+</head>
+<body>
+  <div id="os-nav"></div>
+  <div class="page-body">
+    <div class="container">
+      <header class="header">
+        <div class="header-row">
+          <div>
+            <div class="eyebrow">Personal OS</div>
+            <h1 class="page-title">Home</h1>
+          </div>
+          <div class="today-label" id="today-label"></div>
+        </div>
+      </header>
+
+      <div class="arcade-divider"></div>
+
+      <div class="section-header">
+        <span class="section-label">Modules</span>
+      </div>
+
+      <div class="module-list">
+        <a class="list-row row" href="todos/index.html">
+          <span class="list-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg></span>
+          <span class="list-row-body">
+            <span class="list-row-title">To Do's</span>
+            <span class="list-row-desc">Day-to-day tasks</span>
+          </span>
+        </a>
+        <a class="list-row row" href="rocks/index.html">
+          <span class="list-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18l5-9 4 5 3-4 6 8H3z"/></svg></span>
+          <span class="list-row-body">
+            <span class="list-row-title">Rocks</span>
+            <span class="list-row-desc">This quarter's priorities</span>
+          </span>
+        </a>
+        <a class="list-row row" href="notepad/index.html">
+          <span class="list-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/><path d="M14 7l3 3"/></svg></span>
+          <span class="list-row-body">
+            <span class="list-row-title">Notepad</span>
+            <span class="list-row-desc">Freeform scratchpad</span>
+          </span>
+        </a>
+        <a class="list-row row" href="agents/index.html">
+          <span class="list-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></span>
+          <span class="list-row-body">
+            <span class="list-row-title">Agents</span>
+            <span class="list-row-desc">Automations &amp; assistants</span>
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.NAV_BASE = '.';
+    window.NAV_ACTIVE = 'home';
+  </script>
+  <script src="shared/js/storage.js"></script>
+  <script src="shared/js/nav.js"></script>
+  <script src="shared/js/backup.js"></script>
+  <script>
+    document.getElementById('today-label').textContent = getTodayLabel();
+  </script>
+</body>
+</html>

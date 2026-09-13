@@ -1,0 +1,117 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+.page-body {
+  padding: 2.75rem 1.25rem 4rem;
+}
+
+.container { max-width: 700px; margin: 0 auto; }
+
+/* ── Page header ── */
+.header { margin-bottom: 1.5rem; }
+
+.header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .5rem;
+}
+
+.eyebrow {
+  display: block;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.375rem;
+  color: var(--accent);
+  margin-bottom: .1rem;
+}
+
+.page-title {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 2.875rem;
+  letter-spacing: -.02em;
+  color: var(--text);
+  line-height: 1.05;
+}
+
+.today-label {
+  font-size: .8125rem;
+  font-weight: 300;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.page-metric {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 1.75rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* ── Section header ── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .625rem;
+}
+
+.section-label {
+  font-size: .8125rem;
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.section-count {
+  font-size: .8125rem;
+  font-weight: 300;
+  color: var(--text-3);
+}
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--text-3);
+}
+
+.empty-state-icon {
+  margin-bottom: .75rem;
+  opacity: .5;
+  display: flex;
+  justify-content: center;
+}
+
+.empty-state-icon svg { width: 26px; height: 26px; }
+
+.empty-state h3 {
+  font-size: .9375rem;
+  font-weight: 400;
+  color: var(--text-2);
+  margin-bottom: .375rem;
+}
+
+.empty-state p {
+  font-size: .875rem;
+  font-weight: 300;
+}
+
+@media (max-width: 520px) {
+  .page-body { padding: 1.75rem .875rem 3rem; }
+  .page-title { font-size: 2.25rem; }
+}

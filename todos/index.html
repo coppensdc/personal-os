@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal OS — To Do's</title>
+  <link rel="stylesheet" href="../shared/css/tokens.css">
+  <link rel="stylesheet" href="../shared/css/base.css">
+  <link rel="stylesheet" href="../shared/css/components.css">
+  <link rel="stylesheet" href="../shared/css/nav.css">
+  <link rel="stylesheet" href="../shared/css/backup.css">
+  <link rel="stylesheet" href="todos.css">
+</head>
+<body>
+  <div id="os-nav"></div>
+  <div class="page-body">
+    <div class="container container--wide" id="app"></div>
+  </div>
+
+  <script>
+    window.NAV_BASE = '..';
+    window.NAV_ACTIVE = 'todos';
+  </script>
+  <script src="../shared/js/nav.js"></script>
+  <script src="../shared/js/storage.js"></script>
+  <script src="../shared/js/backup.js"></script>
+  <script src="todos.js"></script>
+</body>
+</html>

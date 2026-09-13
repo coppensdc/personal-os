@@ -1,0 +1,158 @@
+/* ── Row base (hairline separator, no card boxes) ── */
+.row {
+  border-top: 1px solid var(--border);
+  transition: background var(--transition);
+}
+
+.row:first-child { border-top: none; }
+
+/* Neutralize the old boxed "card" look — Amalfi has no cards, just hairlines */
+.card {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ── Icon buttons ── */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  color: var(--text-3);
+  transition: background var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+
+.icon-btn:hover { background: var(--accent-dim); color: var(--accent); }
+.icon-btn.del:hover { background: var(--accent-dim); color: var(--accent); }
+.icon-btn.active { color: var(--accent); opacity: 1; }
+
+.reveal-on-hover { opacity: 0; transition: opacity var(--transition); }
+.card:hover .reveal-on-hover,
+.row:hover .reveal-on-hover { opacity: 1; }
+
+/* ── Status (dot + sentence-case word, no pill) ── */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: .4375rem;
+  font-size: .8125rem;
+  font-weight: 300;
+  color: var(--text-2);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: opacity var(--transition);
+}
+
+.status:hover { opacity: .7; }
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-round);
+  flex-shrink: 0;
+}
+
+.status-coral .status-dot   { background: var(--accent); }
+.status-amber .status-dot   { background: var(--amber); }
+.status-neutral .status-dot { background: var(--text-3); }
+.status-neutral              { color: var(--text-3); }
+
+/* ── Progress ── */
+.progress-bar {
+  height: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width .4s ease;
+}
+
+.progress-bar.mini { height: 2px; width: 64px; }
+
+.metric-block { margin-bottom: 1.125rem; }
+
+.counts-line {
+  margin-top: .5rem;
+  font-size: .8125rem;
+  font-weight: 300;
+  color: var(--text-3);
+}
+
+/* ── Arcade divider (scalloped rule) ── */
+.arcade-divider {
+  height: 16px;
+  margin: 0 0 1.25rem;
+  background-repeat: repeat-x;
+  background-position: center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='16'%3E%3Cpath d='M0 16 a16 14 0 0 1 32 0' fill='none' stroke='%23F26B43' stroke-width='1.2' opacity='0.55'/%3E%3C/svg%3E");
+}
+
+/* ── Quiet "add" action ── */
+.add-item-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .625rem 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: .875rem;
+  font-weight: 300;
+  color: var(--text-3);
+  font-family: inherit;
+  transition: color var(--transition);
+}
+
+.add-item-btn:hover { color: var(--accent); }
+
+/* ── Reusable list row (landing page modules, future Agents/Contacts rows) ── */
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  padding: .875rem 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.list-row-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-row-body { flex: 1; min-width: 0; }
+
+.list-row-title {
+  display: block;
+  font-size: .9375rem;
+  font-weight: 400;
+  color: var(--text);
+  transition: color var(--transition);
+}
+
+.list-row-desc {
+  display: block;
+  font-size: .8125rem;
+  font-weight: 300;
+  color: var(--text-2);
+  margin-top: .1rem;
+}
+
+a.list-row:hover .list-row-title { color: var(--accent); }
