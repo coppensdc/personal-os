@@ -6,8 +6,8 @@ const STORAGE_KEY = 'personal-os-rocks-v1';
 let rocks = [];
 let expandedIds = new Set();
 
-function boot() {
-  const d = loadState(STORAGE_KEY, { rocks: [], expandedIds: [] });
+async function boot() {
+  const d = await loadState(STORAGE_KEY, { rocks: [], expandedIds: [] });
   rocks = d.rocks || [];
   expandedIds = new Set(d.expandedIds || []);
 }
@@ -333,5 +333,4 @@ function render() {
 /* ─────────────────────────────────────────────
    Boot
 ───────────────────────────────────────────── */
-boot();
-render();
+boot().then(render);

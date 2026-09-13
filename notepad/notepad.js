@@ -5,8 +5,8 @@ const STORAGE_KEY = 'personal-os-notepad-v1';
 
 let state;
 
-function boot() {
-  state = loadState(STORAGE_KEY, { text: '' });
+async function boot() {
+  state = await loadState(STORAGE_KEY, { text: '' });
 }
 
 function persist() {
@@ -50,5 +50,4 @@ function render() {
 /* ─────────────────────────────────────────────
    Boot
 ───────────────────────────────────────────── */
-boot();
-render();
+boot().then(render);

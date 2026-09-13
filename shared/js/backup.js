@@ -62,16 +62,12 @@
     });
   }
 
-  function collectAllData() {
-    const data = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.indexOf('personal-os-') === 0 && key !== META_KEY) {
-        try { data[key] = JSON.parse(localStorage.getItem(key)); }
-        catch (e) { data[key] = localStorage.getItem(key); }
-      }
-    }
-    return data;
+  async function collectAllData() {
+    const { data, error } = await sb.from('app_state').select('key, data');
+    if (error) throw error;
+    const result = {};
+    (data || []).forEach((row) => { result[row.key] = row.data; });
+    return result;
   }
 
   async function ensurePermission(handle, requestIfNeeded) {
@@ -96,7 +92,7 @@
   async function writeSnapshot(dirHandle) {
     const fileHandle = await dirHandle.getFileHandle(`personal-os-backup-${todayStr()}.json`, { create: true });
     const writable = await fileHandle.createWritable();
-    await writable.write(JSON.stringify(collectAllData(), null, 2));
+    await writable.write(JSON.stringify(await collectAllData(), null, 2));
     await writable.close();
     await pruneOldSnapshots(dirHandle);
     writeMeta({ folderName: dirHandle.name, lastBackup: new Date().toISOString(), lastError: null });
@@ -152,10 +148,12 @@
     const fileHandle = await dirHandle.getFileHandle(filename);
     const file = await fileHandle.getFile();
     const data = JSON.parse(await file.text());
-    Object.keys(data).forEach((key) => {
-      if (key.indexOf('personal-os-') !== 0) return;
-      localStorage.setItem(key, JSON.stringify(data[key]));
-    });
+    const rows = Object.keys(data)
+      .filter((key) => key.indexOf('personal-os-') === 0)
+      .map((key) => ({ key, data: data[key], updated_at: new Date().toISOString() }));
+    if (!rows.length) return;
+    const { error } = await sb.from('app_state').upsert(rows);
+    if (error) throw error;
   }
 
   async function openRestore() {

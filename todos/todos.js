@@ -32,8 +32,8 @@ let summaryDragging = null;
 let pendingComplete = null;
 let openPopoverId = null;
 
-function boot() {
-  state = loadState(STORAGE_KEY, DEFAULT_STATE);
+async function boot() {
+  state = await loadState(STORAGE_KEY, DEFAULT_STATE);
   migrateToBlocks();
   state.blocks.forEach(b => {
     if (!b.today) b.today = [];
@@ -1075,5 +1075,4 @@ function render() {
 /* ─────────────────────────────────────────────
    Boot
 ───────────────────────────────────────────── */
-boot();
-render();
+boot().then(render);
