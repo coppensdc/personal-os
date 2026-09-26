@@ -176,3 +176,14 @@
 }
 
 .add-milestone-btn:hover { color: var(--accent); }
+
+/* ── Touch adjustments ── */
+@media (pointer: coarse) {
+  /* iOS Safari auto-zooms the page when focusing an input under 16px */
+  .rock-title-input,
+  .milestone-title-input,
+  .milestone-due-input { font-size: 16px; }
+
+  .m-check { width: 19px; height: 19px; }
+  .m-check.checked::after { width: 9px; height: 6px; }
+}

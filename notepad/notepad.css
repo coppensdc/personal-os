@@ -62,3 +62,9 @@
 .notepad-editor li { margin-bottom: .25em; }
 
 .notepad-editor u { text-decoration-color: var(--accent); }
+
+/* iOS Safari auto-zooms the page when focusing a text-editing element under 16px —
+   applies to contenteditable just like a real input/textarea */
+@media (pointer: coarse) {
+  .notepad-editor { font-size: 16px; }
+}

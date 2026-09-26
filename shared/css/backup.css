@@ -120,3 +120,27 @@
 @media (max-width: 480px) {
   .os-backup-panel { width: calc(100vw - 2.5rem); right: -1.25rem; }
 }
+
+/* A full text pill floating over content regularly collides with whatever's
+   scrolled underneath it on a phone-height screen — collapse it to a small
+   status dot on touch; tapping still opens the same panel. */
+@media (pointer: coarse) {
+  .os-backup-pill {
+    font-size: 0;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: var(--radius-round);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .os-backup-pill:disabled::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-round);
+    background: var(--text-3);
+  }
+}
