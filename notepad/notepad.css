@@ -20,3 +20,8 @@
 }
 
 .notepad-textarea::placeholder { color: var(--text-3); }
+
+/* iOS Safari auto-zooms the page when focusing a textarea under 16px */
+@media (pointer: coarse) {
+  .notepad-textarea { font-size: 16px; }
+}

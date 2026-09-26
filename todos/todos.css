@@ -719,4 +719,23 @@
     padding-top: 1.5rem;
     border-top: 1px solid var(--border);
   }
+
+  /* Meaningless once the grid above is forced to a single column */
+  .todo-toggle-group[title="Columns"] { display: none; }
+}
+
+/* ── Touch adjustments — coarse pointer means fingertip taps, not mouse clicks ── */
+@media (pointer: coarse) {
+  /* iOS Safari auto-zooms the page when focusing any input/textarea under 16px —
+     floor every Text size option so typing on mobile doesn't jump-zoom the view */
+  #app { --todo-font-size: 1rem !important; }
+  .todo-text.sub,
+  .todo-subtask-input,
+  .todo-date-input,
+  .todo-notes-menu-textarea,
+  .todo-add-block-input,
+  .todo-modal-note { font-size: 16px; }
+
+  .todo-check { width: 21px; height: 21px; }
+  .todo-check.checked::after { width: 9px; height: 6px; }
 }

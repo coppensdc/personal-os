@@ -34,9 +34,19 @@
 .icon-btn.del:hover { background: var(--accent-dim); color: var(--accent); }
 .icon-btn.active { color: var(--accent); opacity: 1; }
 
-.reveal-on-hover { opacity: 0; transition: opacity var(--transition); }
-.card:hover .reveal-on-hover,
-.row:hover .reveal-on-hover { opacity: 1; }
+/* Bigger tap target on touch — 26px is fine for a mouse pointer, tight for a fingertip */
+@media (pointer: coarse) {
+  .icon-btn { width: 34px; height: 34px; }
+}
+
+/* Hidden-until-hover only makes sense on devices that actually have hover (mouse/trackpad) —
+   on touch, :hover never fires, so these controls (kebab menu, delete, drag handles) would be
+   invisible and untappable. Touch devices get them shown at full opacity instead. */
+@media (hover: hover) and (pointer: fine) {
+  .reveal-on-hover { opacity: 0; transition: opacity var(--transition); }
+  .card:hover .reveal-on-hover,
+  .row:hover .reveal-on-hover { opacity: 1; }
+}
 
 /* ── Status (dot + sentence-case word, no pill) ── */
 .status {
