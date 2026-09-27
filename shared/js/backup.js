@@ -63,6 +63,7 @@
   }
 
   async function collectAllData() {
+    await authReady;
     const { data, error } = await sb.from('app_state').select('key, data');
     if (error) throw error;
     const result = {};
@@ -152,6 +153,7 @@
       .filter((key) => key.indexOf('personal-os-') === 0)
       .map((key) => ({ key, data: data[key], updated_at: new Date().toISOString() }));
     if (!rows.length) return;
+    await authReady;
     const { error } = await sb.from('app_state').upsert(rows);
     if (error) throw error;
   }

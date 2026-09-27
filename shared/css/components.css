@@ -166,3 +166,53 @@
 }
 
 a.list-row:hover .list-row-title { color: var(--accent); }
+
+/* Sign-in overlay (injected by storage.js until there's a session) */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.auth-box {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.auth-title {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 1.75rem;
+  color: var(--text);
+  margin: 0 0 .25rem;
+}
+.auth-hint { color: var(--text-2); font-size: .875rem; margin: 0; }
+.auth-input {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  color: var(--text);
+  padding: .625rem 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  outline: none;
+}
+.auth-input:focus { border-bottom-color: var(--accent); }
+.auth-btn {
+  font-family: var(--font-ui);
+  font-size: .9375rem;
+  font-weight: 400;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-round);
+  padding: .625rem 1rem;
+  cursor: pointer;
+}
+.auth-msg { color: var(--text-2); font-size: .8125rem; min-height: 1.2em; }

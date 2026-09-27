@@ -58,3 +58,17 @@
 @media (max-width: 520px) {
   .os-nav-inner { padding: .5rem .875rem; }
 }
+
+.os-nav-signout {
+  margin-left: auto;
+  font-family: var(--font-ui);
+  font-size: .75rem;
+  font-weight: 300;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  padding: .3125rem .25rem;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+.os-nav-signout:hover { color: var(--accent); }
