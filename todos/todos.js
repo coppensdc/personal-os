@@ -41,6 +41,27 @@ async function boot() {
     if (!b.done) b.done = [];
   });
   if (!Array.isArray(state.summaryOrder)) state.summaryOrder = [];
+  backfillItemDates();
+}
+
+// Items created before createdAt/waitingSince existed. createdAt is recovered
+// from the id (uid() starts with a base-36 timestamp); waitingSince can't be
+// recovered, so an already-waiting item starts counting from today.
+function backfillItemDates() {
+  let changed = false;
+  state.blocks.forEach(b => ['today', 'backlog', 'done'].forEach(section => {
+    b[section].forEach(item => {
+      if (!item.createdAt) { item.createdAt = idTimestamp(item.id) || new Date().toISOString(); changed = true; }
+      if (item.waiting && !item.waitingSince) { item.waitingSince = todayISO(); changed = true; }
+    });
+  }));
+  if (changed) persist();
+}
+
+const WAITING_NUDGE_DAYS = 5;
+
+function waitingDays(item) {
+  return item.waiting && item.waitingSince ? daysBetweenISO(item.waitingSince, todayISO()) : 0;
 }
 
 // One-time upgrade from the old hardcoded personal/work columns to the blocks array.
@@ -105,17 +126,6 @@ const iconNote = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" st
 /* ─────────────────────────────────────────────
    Due-date helpers (plain YYYY-MM-DD string math — avoids Date/timezone pitfalls)
 ───────────────────────────────────────────── */
-function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function addDaysISO(iso, days) {
-  const [y, m, d] = iso.split('-').map(Number);
-  const dt = new Date(y, m - 1, d + days);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-}
-
 function isDueSoon(dueDate) {
   if (!dueDate) return false;
   const today = todayISO();
@@ -192,7 +202,7 @@ function deleteBlock(colKey) {
 function addItem(colKey, section, text) {
   text = text.trim();
   if (!text) return;
-  const item = { id: uid(), text, complete: false, priority: false, waiting: false, dueDate: null, notes: '', subtasks: [], subtasksOpen: false };
+  const item = { id: uid(), text, complete: false, priority: false, waiting: false, dueDate: null, notes: '', subtasks: [], subtasksOpen: false, createdAt: new Date().toISOString() };
   getBlock(colKey)[section].unshift(item);
   persist();
   render();
@@ -312,6 +322,8 @@ function toggleWaiting(colKey, section, id) {
   const item = getBlock(colKey)[section].find(i => i.id === id);
   if (!item) return;
   item.waiting = !item.waiting;
+  if (item.waiting) item.waitingSince = todayISO();
+  else delete item.waitingSince;
   persist();
   render();
 }
@@ -705,8 +717,9 @@ function initAutoGrow() {
 /* ─────────────────────────────────────────────
    Render
 ───────────────────────────────────────────── */
+// Waiting-for items sit at the top of each list so they don't get forgotten.
 function sortForDisplay(list) {
-  return [...list].sort((a, b) => (a.waiting ? 1 : 0) - (b.waiting ? 1 : 0));
+  return [...list].sort((a, b) => (b.waiting ? 1 : 0) - (a.waiting ? 1 : 0));
 }
 
 function renderRow(colKey, section, item) {
@@ -737,6 +750,7 @@ function renderRow(colKey, section, item) {
             <span class="chevron ${subtasksOpen ? 'open' : ''}">${iconChevron}</span>${subDone}/${subtasks.length}
           </button>
         ` : ''}
+        ${waitingDays(item) >= 1 ? `<span class="todo-waiting-age ${waitingDays(item) >= WAITING_NUDGE_DAYS ? 'stale' : ''}" title="Waiting ${waitingDays(item)} day${waitingDays(item) === 1 ? '' : 's'}">${waitingDays(item)}d</span>` : ''}
         <button class="icon-btn todo-kebab reveal-on-hover ${item.priority || item.waiting || item.dueDate || item.notes ? 'active' : ''}" title="More"
                 onclick="toggleItemMenu(event,'${colKey}','${section}','${item.id}')">${iconKebab}</button>
       </div>
@@ -873,7 +887,7 @@ function collectImportantItems() {
   state.blocks.forEach(block => {
     ['today', 'backlog'].forEach(section => {
       block[section].forEach(item => {
-        if (item.priority || isDueSoon(item.dueDate)) {
+        if (item.priority || isDueSoon(item.dueDate) || waitingDays(item) >= WAITING_NUDGE_DAYS) {
           items.push({ colKey: block.id, colName: block.name, section, item });
         }
       });
@@ -914,6 +928,7 @@ function renderImportantRow({ colKey, colName, section, item }) {
         onkeydown="if(event.key==='Enter'){this.blur();event.preventDefault();}"
       >${escapeHtml(item.text)}</textarea>
       ${item.dueDate ? `<span class="todo-important-due ${isDueSoon(item.dueDate) ? 'soon' : ''}">${formatDueLabel(item.dueDate)}</span>` : ''}
+      ${waitingDays(item) >= WAITING_NUDGE_DAYS ? `<span class="todo-important-due soon" title="Waiting for an answer — worth chasing">Waiting ${waitingDays(item)}d</span>` : ''}
       <button class="todo-important-tag" onclick="jumpToBlock('${colKey}')" title="Jump to block">
         ${escapeHtml(colName)}${section === 'backlog' ? ' · Backlog' : ''}
       </button>
@@ -932,7 +947,7 @@ function renderImportant() {
       </div>
       <div class="todo-important-list" ondragover="onSummaryDragOver(event)" ondrop="onSummaryDrop(event)" ondragleave="onSummaryDragLeave(event)">
         ${items.length === 0
-          ? '<div class="todo-backlog-empty">Nothing flagged or due soon</div>'
+          ? '<div class="todo-backlog-empty">Nothing flagged, due soon, or waiting too long</div>'
           : items.map(renderImportantRow).join('')}
       </div>
     </section>

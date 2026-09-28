@@ -19,32 +19,45 @@ const authReady = (async function requireAuth() {
       }
     });
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', renderSignIn);
+      document.addEventListener('DOMContentLoaded', () => renderSignIn());
     } else {
       renderSignIn();
     }
   });
 })();
 
-function renderSignIn() {
-  if (document.querySelector('.auth-overlay')) return;
-  const el = document.createElement('div');
-  el.className = 'auth-overlay';
+function renderSignIn(mode = 'link') {
+  let el = document.querySelector('.auth-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'auth-overlay';
+    document.body.appendChild(el);
+  }
+  const usePassword = mode === 'password';
   el.innerHTML = `
     <form class="auth-box" id="auth-email-form">
       <div class="eyebrow">Personal OS</div>
       <h1 class="auth-title">Sign in</h1>
       <input class="auth-input" id="auth-email" type="email" autocomplete="email" placeholder="Email" required>
-      <button class="auth-btn" type="submit">Send sign-in email</button>
+      ${usePassword ? '<input class="auth-input" id="auth-password" type="password" autocomplete="current-password" placeholder="Password" required>' : ''}
+      <button class="auth-btn" type="submit">${usePassword ? 'Sign in' : 'Send sign-in email'}</button>
+      <button class="auth-switch" type="button" id="auth-switch">${usePassword ? 'Email me a link instead' : 'Sign in with password'}</button>
       <div class="auth-msg" id="auth-msg"></div>
     </form>
   `;
-  document.body.appendChild(el);
   const msg = el.querySelector('#auth-msg');
+  el.querySelector('#auth-switch').addEventListener('click', () => renderSignIn(usePassword ? 'link' : 'password'));
 
   el.querySelector('#auth-email-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = el.querySelector('#auth-email').value.trim();
+    if (usePassword) {
+      msg.textContent = 'Signing in…';
+      const { error } = await sb.auth.signInWithPassword({ email, password: el.querySelector('#auth-password').value });
+      if (error) msg.textContent = error.message;
+      // On success, onAuthStateChange in requireAuth removes the overlay.
+      return;
+    }
     msg.textContent = 'Sending…';
     const { error } = await sb.auth.signInWithOtp({
       email,
@@ -65,16 +78,23 @@ function renderCodeStep(el, email) {
   `;
 }
 
-// Sign-out button in the nav, added once signed in (nav.js runs before this file).
+// Sign-out button in the nav, added once signed in. Waits for the DOM too, so it
+// doesn't depend on nav.js having run before this file.
 authReady.then(() => {
-  const inner = document.querySelector('.os-nav-inner');
-  if (!inner || inner.querySelector('.os-nav-signout')) return;
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'os-nav-signout';
-  btn.textContent = 'Sign out';
-  btn.addEventListener('click', signOut);
-  inner.appendChild(btn);
+  const add = () => {
+    const inner = document.querySelector('.os-nav-inner');
+    if (!inner || inner.querySelector('.os-nav-signout')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'os-nav-signout';
+    btn.textContent = 'Sign out';
+    btn.addEventListener('click', signOut);
+    inner.appendChild(btn);
+    // The button narrows the (phone) scrolling link row — keep the current page's link in view.
+    inner.querySelector('.os-nav-link.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add);
+  else add();
 });
 
 async function signOut() {
@@ -111,6 +131,36 @@ function escapeHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ── Dates: YYYY-MM-DD strings in local time (avoids new Date('2026-08-30')'s UTC shift) ── */
+function isoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function todayISO() {
+  return isoDate(new Date());
+}
+
+function parseISODate(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function addDaysISO(iso, days) {
+  const dt = parseISODate(iso);
+  dt.setDate(dt.getDate() + days);
+  return isoDate(dt);
+}
+
+function daysBetweenISO(fromIso, toIso) {
+  return Math.round((parseISODate(toIso) - parseISODate(fromIso)) / 86400000);
+}
+
+// uid() starts with Date.now() in base 36 (8 chars until 2059) — recover it.
+function idTimestamp(id) {
+  const ms = parseInt(String(id).slice(0, 8), 36);
+  return ms > Date.UTC(2020, 0, 1) && ms <= Date.now() ? new Date(ms).toISOString() : null;
 }
 
 function getTodayLabel() {

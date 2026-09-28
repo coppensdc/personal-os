@@ -5,9 +5,9 @@
   const items = [
     { key: 'home',     label: 'Home',     href: `${base}/index.html` },
     { key: 'todos',    label: "To Do's",  href: `${base}/todos/index.html` },
-    { key: 'rocks',    label: 'Rocks',    href: `${base}/rocks/index.html` },
     { key: 'notepad',  label: 'Notepad',  href: `${base}/notepad/index.html` },
-    { key: 'agents',   label: 'Agents',   href: `${base}/agents/index.html` },
+    { key: 'decisions', label: 'Decisions', href: `${base}/decisions/index.html` },
+    { key: 'review',   label: 'Review',   href: `${base}/review/index.html` },
   ];
 
   function render() {
@@ -25,6 +25,12 @@
         </div>
       </div>
     `;
+    // On phones the links are a horizontal scroll row — keep the current page's link visible.
+    const links = mount.querySelector('.os-nav-links');
+    const current = mount.querySelector('.os-nav-link.active');
+    if (links && current && links.scrollWidth > links.clientWidth) {
+      links.scrollLeft = current.offsetLeft - links.offsetLeft - 8;
+    }
   }
 
   render();

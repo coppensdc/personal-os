@@ -750,3 +750,14 @@
   .todo-check { width: 21px; height: 21px; }
   .todo-check.checked::after { width: 9px; height: 6px; }
 }
+
+/* ── Waiting age ("4d") — coral once it's worth chasing ── */
+.todo-waiting-age {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: .6875rem;
+  font-weight: 400;
+  color: var(--text-3);
+}
+.todo-waiting-age.stale { color: var(--accent); }

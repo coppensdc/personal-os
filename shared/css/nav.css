@@ -72,3 +72,18 @@
   transition: color var(--transition);
 }
 .os-nav-signout:hover { color: var(--accent); }
+
+/* Phone: one scrollable row of links instead of wrapping to 3 lines.
+   The brand pill goes — the Home link already does its job. */
+@media (max-width: 520px) {
+  .os-nav-inner { flex-wrap: nowrap; }
+  .os-nav-brand { display: none; }
+  .os-nav-links {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    min-width: 0;
+  }
+  .os-nav-links::-webkit-scrollbar { display: none; }
+  .os-nav-signout { flex-shrink: 0; }
+}

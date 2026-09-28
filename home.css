@@ -1,0 +1,57 @@
+.home-capture {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--border);
+}
+.home-capture:focus-within { border-bottom-color: var(--accent); }
+.home-capture-input {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: .9375rem;
+  font-weight: 300;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: .375rem 0;
+}
+.home-capture-input::placeholder { color: var(--text-3); }
+.home-capture-block {
+  font-family: inherit;
+  font-size: .8125rem;
+  font-weight: 300;
+  color: var(--text-2);
+  background: transparent;
+  border: none;
+  outline: none;
+  max-width: 40%;
+}
+.home-capture-btn {
+  font-family: inherit;
+  font-size: .8125rem;
+  font-weight: 400;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-round);
+  padding: .375rem .875rem;
+  cursor: pointer;
+}
+.home-capture-msg { min-height: 1.25rem; margin: .375rem 0 1.25rem; font-size: .8125rem; font-weight: 300; color: var(--text-2); }
+
+.home-due { color: var(--accent); }
+
+.home-account { margin-top: 3rem; font-size: .8125rem; font-weight: 300; color: var(--text-3); }
+.home-account summary { cursor: pointer; }
+.home-account summary:hover { color: var(--accent); }
+.home-account p { margin: .5rem 0 .75rem; line-height: 1.5; }
+.home-account form { display: flex; gap: .5rem; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: .375rem; }
+.home-account .home-capture-msg { margin-bottom: 0; }
+
+@media (pointer: coarse) {
+  .home-capture-input, .home-capture-block { font-size: 16px; }
+}
+.home-capture[hidden] { display: none; }
