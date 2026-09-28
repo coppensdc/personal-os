@@ -180,3 +180,108 @@
   .notepad-section-title, .notepad-add-input { font-size: 16px; }
   .notepad-editor { margin-left: 12px; }
 }
+
+/* ── Search ── */
+.notepad-search {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .75rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--border-light);
+}
+.notepad-search-icon { display: flex; color: var(--text-3); transition: color var(--transition); }
+.notepad-search:focus-within .notepad-search-icon { color: var(--accent); }
+.notepad-search-input {
+  flex: 1;
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 300;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: .25rem 0;
+}
+.notepad-search-input::placeholder { color: var(--text-3); }
+::highlight(notepad-search) { background-color: var(--accent-dim); color: inherit; }
+.notepad-section-toggle:disabled { cursor: default; opacity: .4; }
+
+/* ── Toolbar actions (date, send to to-do) ── */
+.notepad-action.labeled {
+  display: inline-flex;
+  align-items: center;
+  gap: .3125rem;
+  height: 26px;
+  padding: 0 .5rem;
+  font-family: inherit;
+  font-size: .8125rem;
+  font-weight: 300;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.notepad-action.labeled:hover { background: var(--accent-dim); color: var(--accent); }
+
+/* ── Send-to menu (appended to body, like To Do's popovers) ── */
+.notepad-menu-catcher { position: fixed; inset: 0; z-index: 150; }
+.notepad-menu {
+  position: fixed;
+  z-index: 151;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: .375rem 0;
+}
+.notepad-menu-title {
+  font-size: .75rem;
+  font-weight: 300;
+  color: var(--text-3);
+  padding: .25rem .875rem .375rem;
+}
+.notepad-menu-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 300;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: .4375rem .875rem;
+  cursor: pointer;
+}
+.notepad-menu-item:hover { background: var(--accent-faint); color: var(--accent); }
+.notepad-menu-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-round);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.notepad-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 4.5rem;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: var(--text);
+  color: #fff;
+  font-size: .8125rem;
+  font-weight: 300;
+  padding: .5rem .875rem;
+  border-radius: var(--radius-round);
+  white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+  .notepad-search-input { font-size: 16px; }
+  .notepad-action.labeled { height: 34px; }
+}

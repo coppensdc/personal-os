@@ -4,11 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Personal OS</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="./shared/icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="./shared/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Personal OS">
+  <meta name="theme-color" content="#FFFFFF">
   <link rel="stylesheet" href="shared/css/tokens.css">
   <link rel="stylesheet" href="shared/css/base.css">
   <link rel="stylesheet" href="shared/css/components.css">
   <link rel="stylesheet" href="shared/css/nav.css">
   <link rel="stylesheet" href="shared/css/backup.css">
+  <link rel="stylesheet" href="home.css">
 </head>
 <body>
   <div id="os-nav"></div>
@@ -25,6 +33,13 @@
       </header>
 
       <div class="arcade-divider"></div>
+
+      <form class="home-capture" id="home-capture" onsubmit="event.preventDefault(); captureTodo();">
+        <input class="home-capture-input" id="home-capture-input" placeholder="Capture a to-do…" autocomplete="off">
+        <select class="home-capture-block" id="home-capture-block" aria-label="Block"></select>
+        <button class="home-capture-btn" type="submit">Add</button>
+      </form>
+      <div class="home-capture-msg" id="home-capture-msg"></div>
 
       <div class="section-header">
         <span class="section-label">Modules</span>
@@ -45,7 +60,31 @@
             <span class="list-row-desc">Notes by topic</span>
           </span>
         </a>
+        <a class="list-row row" href="decisions/index.html">
+          <span class="list-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M12 7l-6 5h12z"/><path d="M5 21h14"/></svg></span>
+          <span class="list-row-body">
+            <span class="list-row-title">Decisions</span>
+            <span class="list-row-desc" id="home-decisions-desc">Log calls, grade them later</span>
+          </span>
+        </a>
+        <a class="list-row row" href="review/index.html">
+          <span class="list-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15"/><path d="M4 9h16"/><path d="M8 3v4M16 3v4"/><path d="M8 13.5l2.5 2.5L16 11"/></svg></span>
+          <span class="list-row-body">
+            <span class="list-row-title">Weekly review</span>
+            <span class="list-row-desc">What got done, what's stuck</span>
+          </span>
+        </a>
       </div>
+
+      <details class="home-account">
+        <summary>Sign-in for the home-screen app</summary>
+        <p>Email links open in your browser, not in an app added to your home screen. Set a password here once, then use "Sign in with password" in the app.</p>
+        <form onsubmit="event.preventDefault(); savePassword();">
+          <input class="home-capture-input" id="home-password" type="password" autocomplete="new-password" placeholder="New password (8+ characters)" minlength="8">
+          <button class="home-capture-btn" type="submit">Save password</button>
+        </form>
+        <div class="home-capture-msg" id="home-password-msg"></div>
+      </details>
     </div>
   </div>
 
@@ -53,12 +92,10 @@
     window.NAV_BASE = '.';
     window.NAV_ACTIVE = 'home';
   </script>
+  <script src="shared/js/nav.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared/js/storage.js"></script>
-  <script src="shared/js/nav.js"></script>
   <script src="shared/js/backup.js"></script>
-  <script>
-    document.getElementById('today-label').textContent = getTodayLabel();
-  </script>
+  <script src="home.js"></script>
 </body>
 </html>

@@ -60,6 +60,12 @@ const iconGrip = `<svg width="12" height="12" viewBox="0 0 12 12" fill="currentC
 
 const iconPlus = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6.5" y1="1.5" x2="6.5" y2="11.5"/><line x1="1.5" y1="6.5" x2="11.5" y2="6.5"/></svg>`;
 
+const iconCalendar = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="10" height="9" rx="1"/><path d="M1.5 5.25h10"/><path d="M4 1v2"/><path d="M9 1v2"/></svg>`;
+
+const iconToTodo = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="5"/><path d="M4.25 6.75l1.5 1.5 3-3.25"/></svg>`;
+
+const iconSearch = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5.75" cy="5.75" r="4"/><line x1="8.75" y1="8.75" x2="11.75" y2="11.75"/></svg>`;
+
 const TOOLS = [
   { cmd: 'bold', icon: iconBold, title: 'Bold (Ctrl+B)' },
   { cmd: 'italic', icon: iconItalic, title: 'Italic (Ctrl+I)' },
@@ -67,6 +73,9 @@ const TOOLS = [
   { sep: true },
   { cmd: 'insertUnorderedList', icon: iconBulletList, title: 'Bullet list' },
   { cmd: 'insertOrderedList', icon: iconNumberedList, title: 'Numbered list' },
+  { sep: true },
+  { action: 'insertDate()', icon: iconCalendar, title: "Insert today's date (Ctrl+;)" },
+  { action: 'openSendMenu(this)', icon: iconToTodo, title: "Send selected lines to To Do's", label: 'To do' },
 ];
 
 /* ─────────────────────────────────────────────
@@ -207,13 +216,14 @@ function formatEdited(iso) {
 }
 
 function renderSection(sec) {
+  const open = sec.open || !!searchQuery;
   return `
-    <section class="notepad-section row ${sec.open ? 'open' : ''}" data-id="${sec.id}"
+    <section class="notepad-section row ${open ? 'open' : ''}" data-id="${sec.id}"
       ondragover="onSectionDragOver(event,'${sec.id}')" ondrop="onSectionDrop(event,'${sec.id}')">
       <div class="notepad-section-header">
         <button class="notepad-section-toggle" onclick="toggleSection('${sec.id}')"
-          title="${sec.open ? 'Collapse' : 'Expand'}" aria-expanded="${sec.open}">
-          <span class="chevron ${sec.open ? 'open' : ''}">${iconChevron}</span>
+          title="${open ? 'Collapse' : 'Expand'}" aria-expanded="${open}" ${searchQuery ? 'disabled' : ''}>
+          <span class="chevron ${open ? 'open' : ''}">${iconChevron}</span>
         </button>
         <input class="notepad-section-title" value="${escapeHtml(sec.title)}" aria-label="Section title"
           onchange="onTitleChange('${sec.id}', this.value)" onkeydown="onTitleKey(event)">
@@ -222,10 +232,10 @@ function renderSection(sec) {
         <span class="notepad-section-handle reveal-on-hover" title="Drag to reorder" draggable="true"
           ondragstart="onSectionDragStart(event,'${sec.id}')" ondragend="onSectionDragEnd(event)">${iconGrip}</span>
       </div>
-      ${sec.open ? `
+      ${open ? `
         <div class="notepad-editor" contenteditable="true" data-id="${sec.id}"
           data-placeholder="Write anything…"
-          oninput="onEditorInput(this)" onkeyup="updateToolbarState()" onmouseup="updateToolbarState()"
+          oninput="onEditorInput(this)" onkeydown="onEditorKeydown(event)" onpointerdown="lastSelectionText=''" onkeyup="updateToolbarState()" onmouseup="updateToolbarState()"
           onblur="updateToolbarState()">${sec.html}</div>
       ` : ''}
     </section>
@@ -233,8 +243,8 @@ function renderSection(sec) {
 }
 
 function render() {
+  closeSendMenu();
   const app = document.getElementById('app');
-  const anyOpen = state.sections.some(s => s.open);
   app.innerHTML = `
     <header class="header">
       <div class="header-row">
@@ -248,33 +258,191 @@ function render() {
 
     <div class="arcade-divider"></div>
 
+    <div class="notepad-search">
+      <span class="notepad-search-icon">${iconSearch}</span>
+      <input class="notepad-search-input" id="notepad-search" type="search" placeholder="Search notes…"
+        value="${escapeHtml(searchQuery)}" oninput="onSearchInput(this.value)" onkeydown="if(event.key==='Escape'){this.value='';onSearchInput('');}">
+    </div>
+
     <div class="notepad-toolbar">
       ${TOOLS.map(t => t.sep
         ? `<span class="notepad-toolbar-sep"></span>`
+        : t.action
+        ? `<button class="notepad-action ${t.label ? 'labeled' : 'icon-btn'}" title="${t.title}"
+             onmousedown="event.preventDefault()" onclick="${t.action}">${t.icon}${t.label ? `<span>${t.label}</span>` : ''}</button>`
         : `<button class="icon-btn notepad-tool" data-cmd="${t.cmd}" title="${t.title}"
              onmousedown="event.preventDefault()" onclick="applyCmd('${t.cmd}')">${t.icon}</button>`
       ).join('')}
-      ${state.sections.length ? `
-        <button class="notepad-collapse-all" onclick="setAllOpen(${!anyOpen})">
-          ${anyOpen ? 'Collapse all' : 'Expand all'}
-        </button>` : ''}
+      <button class="notepad-collapse-all" id="notepad-collapse-all" onclick="setAllOpen(!state.sections.some(s => s.open))"></button>
     </div>
 
-    <div class="notepad-sections">
-      ${state.sections.length
-        ? state.sections.map(renderSection).join('')
-        : `<div class="empty-state">No sections yet — add one below.</div>`}
-    </div>
+    <div class="notepad-sections" id="notepad-sections"></div>
 
     <div class="notepad-add-row">
       <span class="notepad-add-icon">${iconPlus}</span>
       <input class="notepad-add-input" placeholder="Add a section…" onkeydown="onAddSectionKey(event)">
     </div>
   `;
+  renderSections();
+}
+
+// Only the section list re-renders while searching, so the search box keeps focus.
+function renderSections() {
+  const list = document.getElementById('notepad-sections');
+  const shown = searchQuery ? state.sections.filter(sectionMatches) : state.sections;
+  list.innerHTML = shown.length
+    ? shown.map(renderSection).join('')
+    : `<div class="empty-state">${searchQuery ? 'No notes match.' : 'No sections yet — add one below.'}</div>`;
+
+  const btn = document.getElementById('notepad-collapse-all');
+  btn.hidden = !!searchQuery || !state.sections.length;
+  btn.textContent = state.sections.some(s => s.open) ? 'Collapse all' : 'Expand all';
+  highlightMatches();
+}
+
+/* ─────────────────────────────────────────────
+   Search
+───────────────────────────────────────────── */
+let searchQuery = '';
+
+function htmlToText(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent;
+}
+
+function sectionMatches(sec) {
+  const q = searchQuery.toLowerCase();
+  return sec.title.toLowerCase().includes(q) || htmlToText(sec.html).toLowerCase().includes(q);
+}
+
+function onSearchInput(value) {
+  searchQuery = value.trim();
+  renderSections();
+}
+
+// Marks matches with the CSS Custom Highlight API — paints over the text without
+// touching the editable DOM, so saved note HTML never picks up <mark> tags.
+// Browsers without it (older Safari/Firefox) still filter, just without the paint.
+function highlightMatches() {
+  if (!window.CSS || !CSS.highlights || typeof Highlight === 'undefined') return;
+  CSS.highlights.delete('notepad-search');
+  if (!searchQuery) return;
+  const q = searchQuery.toLowerCase();
+  const ranges = [];
+  document.querySelectorAll('.notepad-editor').forEach(editor => {
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const text = node.textContent.toLowerCase();
+      let i = text.indexOf(q);
+      while (i !== -1) {
+        const r = new Range();
+        r.setStart(node, i);
+        r.setEnd(node, i + q.length);
+        ranges.push(r);
+        i = text.indexOf(q, i + q.length);
+      }
+    }
+  });
+  if (ranges.length) CSS.highlights.set('notepad-search', new Highlight(...ranges));
+}
+
+/* ─────────────────────────────────────────────
+   Insert today's date
+───────────────────────────────────────────── */
+function insertDate() {
+  const editor = activeEditor();
+  if (!editor) { showToast('Click into a note first'); return; }
+  const label = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  document.execCommand('insertText', false, `${label} — `);
+  onEditorInput(editor);
+}
+
+function onEditorKeydown(e) {
+  lastSelectionText = '';
+  if ((e.ctrlKey || e.metaKey) && e.key === ';') { e.preventDefault(); insertDate(); }
+}
+
+/* ─────────────────────────────────────────────
+   Send to To Do's
+───────────────────────────────────────────── */
+const TODOS_KEY = 'personal-os-todos-v1';
+let lastSelectionText = '';
+let sendLines = [];
+
+function selectedLines() {
+  const text = window.getSelection().toString() || lastSelectionText;
+  return text.split('\n').map(l => l.trim()).filter(Boolean);
+}
+
+async function openSendMenu(btn) {
+  if (document.getElementById('notepad-send-menu')) { closeSendMenu(); return; }
+  sendLines = selectedLines();
+  if (!sendLines.length) { showToast('Select the line(s) to send first'); return; }
+  // Read To Do's fresh at click time rather than at boot, so a to-do added on
+  // another device since this page loaded isn't overwritten.
+  const todos = await loadState(TODOS_KEY, {});
+  if (!Array.isArray(todos.blocks) || !todos.blocks.length) { showToast("Open To Do's once to set up its blocks first"); return; }
+
+  const catcher = document.createElement('div');
+  catcher.className = 'notepad-menu-catcher';
+  catcher.id = 'notepad-send-catcher';
+  catcher.onclick = closeSendMenu;
+  const menu = document.createElement('div');
+  menu.className = 'notepad-menu';
+  menu.id = 'notepad-send-menu';
+  menu.innerHTML = `
+    <div class="notepad-menu-title">Add ${sendLines.length} to-do${sendLines.length === 1 ? '' : 's'} to…</div>
+    ${todos.blocks.map(b => `
+      <button class="notepad-menu-item" onmousedown="event.preventDefault()" onclick="sendToBlock('${escapeHtml(b.id)}')">
+        ${b.color ? `<span class="notepad-menu-dot" style="background:${escapeHtml(b.color)}"></span>` : '<span class="notepad-menu-dot"></span>'}
+        ${escapeHtml(b.name)}
+      </button>`).join('')}
+  `;
+  document.body.append(catcher, menu);
+  const r = btn.getBoundingClientRect();
+  menu.style.top = `${r.bottom + 6}px`;
+  menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8))}px`;
+}
+
+function closeSendMenu() {
+  document.getElementById('notepad-send-menu')?.remove();
+  document.getElementById('notepad-send-catcher')?.remove();
+}
+
+async function sendToBlock(blockId) {
+  closeSendMenu();
+  const todos = await loadState(TODOS_KEY, {});
+  const block = (todos.blocks || []).find(b => b.id === blockId);
+  if (!block) { showToast("That block no longer exists"); return; }
+  if (!Array.isArray(block.today)) block.today = [];
+  const now = new Date().toISOString();
+  // Same shape as To Do's addItem(); prepended in reverse so they keep note order at the top.
+  [...sendLines].reverse().forEach(text => block.today.unshift({
+    id: uid(), text, complete: false, priority: false, waiting: false, dueDate: null,
+    notes: '', subtasks: [], subtasksOpen: false, createdAt: now,
+  }));
+  saveState(TODOS_KEY, todos);
+  showToast(`Added ${sendLines.length} to ${block.name}`);
+  sendLines = [];
+}
+
+function showToast(msg) {
+  document.querySelector('.notepad-toast')?.remove();
+  const t = document.createElement('div');
+  t.className = 'notepad-toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
 }
 
 document.addEventListener('selectionchange', () => {
-  if (activeEditor()) updateToolbarState();
+  if (!activeEditor()) return;
+  updateToolbarState();
+  // Kept because on touch devices tapping a toolbar button can clear the live selection.
+  const text = window.getSelection().toString();
+  if (text.trim()) lastSelectionText = text;
 });
 
 /* ─────────────────────────────────────────────
