@@ -57,24 +57,12 @@ function renderSignIn() {
 
 function renderCodeStep(el, email) {
   el.innerHTML = `
-    <form class="auth-box" id="auth-code-form">
+    <div class="auth-box">
       <div class="eyebrow">Personal OS</div>
       <h1 class="auth-title">Check your email</h1>
-      <p class="auth-hint">Click the link in the email, or enter the code here.</p>
-      <input class="auth-input" id="auth-code" inputmode="numeric" autocomplete="one-time-code" placeholder="Code" required>
-      <button class="auth-btn" type="submit">Sign in</button>
-      <div class="auth-msg" id="auth-msg"></div>
-    </form>
+      <p class="auth-hint">We sent a sign-in link to ${escapeHtml(email)}. Open it in this browser.</p>
+    </div>
   `;
-  const msg = el.querySelector('#auth-msg');
-  el.querySelector('#auth-code-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const token = el.querySelector('#auth-code').value.replace(/\s/g, '');
-    msg.textContent = 'Checking…';
-    const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
-    if (error) msg.textContent = error.message;
-    // On success, onAuthStateChange in requireAuth removes the overlay.
-  });
 }
 
 // Sign-out button in the nav, added once signed in (nav.js runs before this file).
