@@ -717,8 +717,9 @@ function initAutoGrow() {
 /* ─────────────────────────────────────────────
    Render
 ───────────────────────────────────────────── */
+// Waiting-for items sit at the top of each list so they don't get forgotten.
 function sortForDisplay(list) {
-  return [...list].sort((a, b) => (a.waiting ? 1 : 0) - (b.waiting ? 1 : 0));
+  return [...list].sort((a, b) => (b.waiting ? 1 : 0) - (a.waiting ? 1 : 0));
 }
 
 function renderRow(colKey, section, item) {
