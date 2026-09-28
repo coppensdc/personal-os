@@ -2,16 +2,14 @@
 
 A personal operating system: quarterly priorities, daily to-do's, a scratchpad, and (eventually) more modules, built as a static multi-page site. No build step, no framework — vanilla HTML/CSS/JS. **Live** at https://coppensdc.github.io/personal-os/ (GitHub repo: `coppensdc/personal-os`, public), reachable from any device including phone.
 
-Last updated: 2026-09-27 (added Supabase Auth sign-in gate; data locked to owner via RLS)
+Last updated: 2026-09-28 (removed Rocks/Agents; Notepad got collapsible sections)
 
 ## Structure
 
 ```
 index.html            Landing page — module list + nav (order matches nav below)
 todos/index.html       To Do's module (fully built)
-rocks/index.html       Rocks module (fully built)
-notepad/index.html     Notepad module (fully built) — freeform textarea
-agents/index.html      Stub — "coming soon"
+notepad/index.html     Notepad module — collapsible topic sections, rich text
 shared/css/            tokens.css, base.css, components.css, nav.css, backup.css
 shared/js/              storage.js, nav.js, backup.js
 ```
@@ -21,7 +19,7 @@ shared/js/              storage.js, nav.js, backup.js
 - Each module is a folder with its own `index.html`, referencing the shared CSS/JS plus its own `<module>.css`/`<module>.js` when it has module-specific logic.
 - Data persists in **Supabase** (project ref `seuqxfxjvrwoimdwmoau`), not `localStorage` (moved 2026-09-13 for cross-device sync). One row per module in a shared `app_state` table (`key text primary key, data jsonb, updated_at`), keyed by the same strings the old localStorage scheme used (`personal-os-rocks-v1`, `personal-os-todos-v1`, `personal-os-notepad-v1`) — each row's `data` holds that module's entire state blob, same shape as before. `shared/js/storage.js` exposes the same `loadState`/`saveState` API each module already called, so `todos.js`/`rocks.js`/`notepad.js` didn't need rewriting — only `boot()` in each became `async` (since `loadState` now awaits a network call) and each file's `boot(); render();` at the bottom became `boot().then(render);`. The Supabase URL + anon public key are hardcoded at the top of `storage.js` — safe to have in public client-side code by Supabase's design (the anon key only grants what RLS policies allow), but it does mean the `app_state` table's "anon full access" RLS policy (see project's Supabase dashboard → SQL Editor for the exact policy) makes all Personal OS data readable/writable by anyone who finds the site and looks at its JS source — acceptable tradeoff for a personal tool with no login, revisit if that changes. **Superseded 2026-09-27 — auth added:** every page is now gated by Supabase Auth (email magic link only — Supabase's default mailer doesn't allow editing the email template to include a typed code without custom SMTP, so there's no code-entry step). `storage.js` creates an `authReady` promise that resolves once there's a session; until then it injects a full-screen `.auth-overlay` sign-in form (styles in `components.css`). `loadState`/`saveState` and `backup.js`'s `collectAllData`/`restoreFrom` all `await authReady` before touching Supabase, so no data request goes out signed-out. Sign-in uses `shouldCreateUser: false` (only a user pre-created in the Supabase dashboard can sign in) and `flowType: 'implicit'` (so a magic link opened on a different device/browser than the one that requested it still works — PKCE would fail there). A "Sign out" button is appended to the nav by `storage.js` after sign-in (not by `nav.js`, which loads before `storage.js`). The RLS policy is meant to be "authenticated AND `auth.uid()` = the owner's user id" — the anon policy is dropped; the exact SQL lives in the Supabase dashboard, not this repo. Magic-link redirects can't target `file://`, so local testing needs a local HTTP server (e.g. `python3 -m http.server`) with `http://localhost:<port>/**` added to the project's allowed redirect URLs. `supabase-js` is loaded via a `<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">` tag before `storage.js` on every page that needs it.
 - **Caveat inherited from the localStorage era, now moot for app data but still true of anything that ever goes back to `localStorage`:** it's scoped per exact origin/path — doesn't apply to Supabase, which is origin-independent.
-- Shared top nav: each page sets `window.NAV_BASE` (relative path back to root) and `window.NAV_ACTIVE` (current module key) before loading `shared/js/nav.js`, which injects the nav bar into `<div id="os-nav">`. Nav order (and the Home page's module list, kept in sync manually) is: Home, To Do's, Rocks, Notepad, Agents.
+- Shared top nav: each page sets `window.NAV_BASE` (relative path back to root) and `window.NAV_ACTIVE` (current module key) before loading `shared/js/nav.js`, which injects the nav bar into `<div id="os-nav">`. Nav order (and the Home page's module list, kept in sync manually) is: Home, To Do's, Notepad.
 - Design tokens live in `shared/css/tokens.css` — reuse these rather than hardcoding values so modules stay visually consistent.
 - Reusable UI classes (`.row`, `.status`/`.status-dot`, `.icon-btn`, `.progress-bar`, `.empty-state`, `.add-item-btn`, `.list-row`, `.arcade-divider`) live in `shared/css/components.css`. `.card` still exists as a class name (kept on some elements for historical reasons) but is now a no-op — see Design system below.
 
@@ -40,8 +38,8 @@ Applied from a text design handoff (no visual reference file was available in th
 
 ## Module notes
 
-### Rocks
-Migrated from an original single-file `rocks.html`. EOS-style quarterly priorities: each rock has milestones (title, due date, complete). Status (dot + word) cycles on-track → off-track → complete on click.
+### Rocks / Agents (removed 2026-09-28)
+Deleted from the repo, nav, and Home page — Rocks now live in Ninety (the team's EOS tool) and agents in Langdock, so both modules were dead weight. Rocks' data row (`personal-os-rocks-v1`) was left in Supabase untouched; the module code is recoverable from git history (last present in commit `7f9d427`). Rocks was an EOS-style quarterly-priorities module (rocks with milestones, status cycling on-track → off-track → complete); Agents was only ever a "coming soon" stub.
 
 ### To Do's
 - Page uses a wider container than the rest of the site: `.container--wide { max-width: 900px }` (defined in `todos.css`, applied only on `todos/index.html`'s `#app` div) — the shared 700px `.container` in `base.css` is untouched so every other module stays at the original width.
@@ -70,7 +68,12 @@ Migrated from an original single-file `rocks.html`. EOS-style quarterly prioriti
 - Checking a to-do's checkbox (in Today or Backlog) opens a modal asking what you actually did; confirming moves the item out of its list and into a collapsible **Done** section (per block, underneath Backlog) with that note and a completed-date stamp attached — an append-only archive, not just a strikethrough. Cancel/Escape/backdrop-click abandons the action with no state change. Delete on a Done row removes it from the archive permanently.
 
 ### Notepad
-Single freeform `<textarea>`, autosaves on every keystroke to its own `localStorage` key. Eyebrow "Quick capture" makes the purpose (unstructured scratch space) explicit versus the structured Rocks/To Do's modules.
+Rich-text notes (contenteditable + `document.execCommand` toolbar: bold/italic/underline/bullets/numbers) organised into **collapsible topic sections** (added 2026-09-28).
+- State: `{ sections: [{id, title, html, open, updatedAt}] }` under `personal-os-notepad-v1`. `migrateToSections()` wraps a pre-sections save's single `text` blob into one "Notes" section — keyed off `sections` being absent (old shape), per the To Do's migration lesson; `loadState` is called with an empty fallback so `sections` can't be pre-filled by the merge.
+- One shared toolbar at the top acts on whichever section editor currently has focus (`activeEditor()`); buttons `preventDefault` on mousedown so clicking them doesn't steal focus/selection from the editor.
+- Section header: chevron toggle (persisted `open`, so collapse state syncs across devices), always-editable title `<input>` (To Do's block-title pattern), muted "Edited …" stamp (updated live on input without re-render), hover-revealed delete (native `confirm()` only if the section has content) and grip handle for drag-reorder (native HTML5 DnD, `sectionDragging`; hidden on touch since HTML5 DnD doesn't fire there). "Collapse all / Expand all" sits at the toolbar's right. "+ Add a section…" input at the bottom (To Do's "Add a block" pattern).
+- Typing in an editor persists on every input but never calls `render()` — only structural changes (add/delete/toggle/reorder) re-render, so the caret isn't lost mid-typing. `onAddSectionKey` must `preventDefault()` the Enter: focus moves to the new editor during keydown, and the Enter's default action would otherwise land there as a stray blank line (caught in testing).
+- Editors are hairline-left-bordered (coral on focus) rather than boxed, matching the no-cards design rule.
 
 ### Past Calls / Contacts (removed 2026-09-13)
 These two Notion-backed modules were pulled out of the site (nav + home page tiles removed) as part of prepping the site for public hosting — their data (real meeting titles, participants, client labels) shouldn't sit in a public GitHub repo. The `sync-granola-calls-to-notion` scheduled task (which regenerated their `data.js` snapshots and kept Notion in sync) was deleted at the same time. The module folders themselves weren't deleted, just moved out of this repo to `Documents\Claude\Code\_archived-personal-os-modules\` (sibling to this folder) in case they're wanted back later — see memory entries `past-calls-notion-db`, `contacts-notion-db`, and `sync-granola-calls-to-notion` for the full prior architecture if reviving this.

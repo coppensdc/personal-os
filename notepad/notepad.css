@@ -14,23 +14,106 @@
   margin: 0 .375rem;
 }
 
+.notepad-toolbar .notepad-collapse-all {
+  margin-left: auto;
+  font-family: inherit;
+  font-size: .8125rem;
+  font-weight: 300;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: .25rem 0;
+  transition: color var(--transition);
+}
+.notepad-toolbar .notepad-collapse-all:hover { color: var(--accent); }
+
+/* ── Sections: hairline-separated rows (.row), no boxes ── */
+.notepad-section { padding: .375rem 0; }
+.notepad-section.dragging { opacity: .4; }
+.notepad-section.drop-target { box-shadow: inset 0 2px 0 var(--accent); }
+
+.notepad-section-header {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  min-height: 40px;
+}
+
+.notepad-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-3);
+  flex-shrink: 0;
+  transition: color var(--transition);
+}
+.notepad-section-toggle:hover { color: var(--accent); }
+.notepad-section-toggle .chevron { display: flex; transition: transform var(--transition); }
+.notepad-section-toggle .chevron.open { transform: rotate(90deg); }
+
+.notepad-section-title {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 1.0625rem;
+  font-weight: 400;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: .25rem .25rem;
+  margin: 0 -.25rem;
+  transition: background var(--transition);
+}
+.notepad-section-title:focus { background: var(--accent-dim); }
+
+.notepad-section-edited {
+  font-size: .75rem;
+  font-weight: 300;
+  color: var(--text-3);
+  white-space: nowrap;
+  margin-right: .25rem;
+}
+
+.notepad-section-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 26px;
+  color: var(--text-3);
+  cursor: grab;
+  flex-shrink: 0;
+}
+.notepad-section-handle:hover { color: var(--accent); }
+
+/* Drag-reordering is mouse-only (native HTML5 DnD doesn't fire on touch) */
+@media (pointer: coarse) {
+  .notepad-section-handle { display: none; }
+}
+
 .notepad-editor {
   display: block;
-  width: 100%;
-  min-height: 60vh;
+  min-height: 5.5em;
+  margin: .25rem 0 .75rem 26px;
   font-family: inherit;
   font-size: .9375rem;
   font-weight: 300;
   line-height: 1.7;
   color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 1rem 1.125rem;
+  padding: .25rem 0 .25rem .875rem;
+  border-left: 1px solid var(--border);
   outline: none;
   transition: border-color var(--transition);
 }
 
-.notepad-editor:focus { border-color: var(--accent); }
+.notepad-editor:focus { border-left-color: var(--accent); }
 
 .notepad-editor:empty::before {
   content: attr(data-placeholder);
@@ -67,4 +150,33 @@
    applies to contenteditable just like a real input/textarea */
 @media (pointer: coarse) {
   .notepad-editor { font-size: 16px; }
+}
+
+/* ── Add a section (same pattern as To Do's "Add a block") ── */
+.notepad-add-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.notepad-add-icon { display: flex; color: var(--text-3); transition: color var(--transition); }
+.notepad-add-row:focus-within .notepad-add-icon { color: var(--accent); }
+.notepad-add-input {
+  flex: 1;
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 300;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: .25rem 0;
+}
+.notepad-add-input::placeholder { color: var(--text-3); }
+
+@media (pointer: coarse) {
+  .notepad-section-title, .notepad-add-input { font-size: 16px; }
+  .notepad-editor { margin-left: 12px; }
 }
