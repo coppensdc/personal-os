@@ -173,3 +173,8 @@ function render() {
 }
 
 boot().then(render);
+watchState(TODOS_KEY, {}, fresh => {
+  todos = fresh;
+  if (!Array.isArray(todos.blocks)) todos.blocks = [];
+  render();
+});

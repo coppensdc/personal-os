@@ -34,6 +34,11 @@ let openPopoverId = null;
 
 async function boot() {
   state = await loadState(STORAGE_KEY, DEFAULT_STATE);
+  normalizeState();
+}
+
+// Shared by boot and by remote changes from another device (watchState below).
+function normalizeState() {
   migrateToBlocks();
   state.blocks.forEach(b => {
     if (!b.today) b.today = [];
@@ -1091,3 +1096,9 @@ function render() {
    Boot
 ───────────────────────────────────────────── */
 boot().then(render);
+// Mark-done modal and drags hold item ids across renders — wait for them to finish.
+watchState(STORAGE_KEY, DEFAULT_STATE, fresh => {
+  state = fresh;
+  normalizeState();
+  render();
+}, { isBusy: () => pageIsBusy() || !!pendingComplete || !!(dragging || blockDragging || summaryDragging) });

@@ -216,3 +216,8 @@ function autoGrow(el) {
 }
 
 boot().then(render);
+watchState(STORAGE_KEY, {}, fresh => {
+  state = fresh;
+  if (!Array.isArray(state.decisions)) state.decisions = [];
+  render();
+});
