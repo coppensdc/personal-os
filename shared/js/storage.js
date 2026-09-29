@@ -106,13 +106,31 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
+// Every row version (updated_at, ms) this page has loaded or written, per key —
+// lets watchState() tell another device's save apart from the echo of our own.
+const seenVersions = {};
+// Saves started / still in flight per key — a fetch that overlaps one may return
+// the row from before our save landed, so its result is discarded.
+const saveCounter = {};
+const savesInFlight = {};
+
+function noteVersion(key, updatedAt) {
+  if (!updatedAt) return;
+  (seenVersions[key] = seenVersions[key] || new Set()).add(Date.parse(updatedAt));
+}
+
+function mergeWithFallback(saved, fallback) {
+  return { ...JSON.parse(JSON.stringify(fallback)), ...(saved || {}) };
+}
+
 async function loadState(key, fallback) {
   await authReady;
   try {
-    const { data, error } = await sb.from('app_state').select('data').eq('key', key).maybeSingle();
+    const { data, error } = await sb.from('app_state').select('data, updated_at').eq('key', key).maybeSingle();
     if (error) throw error;
     if (!data) return JSON.parse(JSON.stringify(fallback));
-    return { ...JSON.parse(JSON.stringify(fallback)), ...data.data };
+    noteVersion(key, data.updated_at);
+    return mergeWithFallback(data.data, fallback);
   } catch (e) {
     console.error('Supabase load failed, using defaults:', e);
     return JSON.parse(JSON.stringify(fallback));
@@ -120,11 +138,76 @@ async function loadState(key, fallback) {
 }
 
 function saveState(key, state) {
+  const updatedAt = new Date().toISOString();
+  noteVersion(key, updatedAt);
+  saveCounter[key] = (saveCounter[key] || 0) + 1;
+  savesInFlight[key] = (savesInFlight[key] || 0) + 1;
   authReady.then(() => sb.from('app_state')
-    .upsert({ key, data: state, updated_at: new Date().toISOString() })
+    .upsert({ key, data: state, updated_at: updatedAt })
     .then(({ error }) => {
       if (error) console.error('Supabase save failed:', error);
-    }));
+    }))
+    .finally(() => { savesInFlight[key]--; });
+}
+
+// True while the person is mid-edit on this page (typing in a field) — applying a
+// remote change then would re-render away their caret. An unfocused window is never
+// busy: blurring the window already committed whatever field was being edited.
+function pageIsBusy() {
+  if (!document.hasFocus()) return false;
+  const el = document.activeElement;
+  return !!el && (el.matches('input, textarea, select') || el.isContentEditable);
+}
+
+// Keeps a page's copy of one row current, so a long-open tab (or a floating
+// window) doesn't overwrite newer saves from another device with a stale blob.
+// Re-checks on Supabase Realtime changes to the row, when the page becomes
+// visible/focused again (covers events missed while asleep or offline), and every
+// few minutes as a fallback. onChange(freshState) is called only for versions
+// this page didn't write itself, and never while isBusy() — it's retried after.
+// Requires Realtime enabled for app_state (Database → Publications).
+function watchState(key, fallback, onChange, { isBusy = pageIsBusy } = {}) {
+  let checking = false;
+  let recheck = false;
+  let retryTimer = null;
+
+  async function check() {
+    if (checking) { recheck = true; return; }
+    checking = true;
+    try {
+      await authReady;
+      const savesBefore = saveCounter[key] || 0;
+      const overlapped = () => savesInFlight[key] > 0 || (saveCounter[key] || 0) !== savesBefore;
+      if (overlapped()) return schedule(1000);
+      const { data, error } = await sb.from('app_state').select('data, updated_at').eq('key', key).maybeSingle();
+      if (error || !data) return;
+      if (overlapped()) return schedule(1000);
+      if (seenVersions[key]?.has(Date.parse(data.updated_at))) return;
+      if (isBusy()) return schedule(1500);
+      noteVersion(key, data.updated_at);
+      onChange(mergeWithFallback(data.data, fallback));
+    } catch (e) {
+      console.error('Sync check failed:', e);
+    } finally {
+      checking = false;
+      if (recheck) { recheck = false; check(); }
+    }
+  }
+
+  function schedule(ms) {
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(check, ms);
+  }
+
+  authReady.then(() => {
+    sb.channel(`app_state:${key}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state', filter: `key=eq.${key}` }, () => check())
+      .subscribe((status) => { if (status === 'SUBSCRIBED') check(); });
+  });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+  window.addEventListener('focus', check);
+  window.addEventListener('online', check);
+  setInterval(() => { if (document.visibilityState === 'visible') check(); }, 5 * 60 * 1000);
 }
 
 function escapeHtml(s) {

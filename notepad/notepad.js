@@ -449,3 +449,8 @@ document.addEventListener('selectionchange', () => {
    Boot
 ───────────────────────────────────────────── */
 boot().then(render);
+watchState(STORAGE_KEY, {}, fresh => {
+  state = fresh;
+  migrateToSections();
+  render();
+}, { isBusy: () => pageIsBusy() || !!sectionDragging });

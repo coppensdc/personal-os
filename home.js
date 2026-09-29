@@ -15,7 +15,10 @@ function setMsg(id, text) {
 }
 
 async function loadBlocks() {
-  const todos = await loadState(TODOS_KEY, {});
+  renderBlocks(await loadState(TODOS_KEY, {}));
+}
+
+function renderBlocks(todos) {
   const select = document.getElementById('home-capture-block');
   const blocks = Array.isArray(todos.blocks) ? todos.blocks : [];
   let last = null;
@@ -47,13 +50,15 @@ async function captureTodo() {
 }
 
 async function loadDecisionsDue() {
-  const data = await loadState(DECISIONS_KEY, {});
+  renderDecisionsDue(await loadState(DECISIONS_KEY, {}));
+}
+
+function renderDecisionsDue(data) {
+  const el = document.getElementById('home-decisions-desc');
+  if (!el.dataset.defaultText) el.dataset.defaultText = el.textContent;
   const due = (data.decisions || []).filter(d => !d.verdict && d.reviewOn && d.reviewOn <= todayISO()).length;
-  if (due) {
-    const el = document.getElementById('home-decisions-desc');
-    el.textContent = `${due} due for review`;
-    el.classList.add('home-due');
-  }
+  el.textContent = due ? `${due} due for review` : el.dataset.defaultText;
+  el.classList.toggle('home-due', !!due);
 }
 
 async function savePassword() {
@@ -67,3 +72,5 @@ async function savePassword() {
 
 loadBlocks();
 loadDecisionsDue();
+watchState(TODOS_KEY, {}, renderBlocks);
+watchState(DECISIONS_KEY, {}, renderDecisionsDue);
