@@ -8,6 +8,6 @@ window.IDEAS_LOG = [
     title: 'Move an idea to the top from your phone',
     summary: 'Each idea below the first now has a "Move to top" arrow, so you can choose what gets built next without dragging, which also works on touch screens.',
     ideaId: null,
-    pr: '',
+    pr: 'https://github.com/coppensdc/personal-os/pull/5',
   },
 ];
