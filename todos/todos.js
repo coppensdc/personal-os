@@ -20,10 +20,14 @@ const DEFAULT_STATE = {
   fontSize: 'md',
   summaryOrder: [],
   blocks: [
-    { id: 'personal', name: 'Work', color: null, today: [], backlog: [], done: [], backlogOpen: false, doneOpen: false },
-    { id: 'work', name: 'Personal', color: null, today: [], backlog: [], done: [], backlogOpen: false, doneOpen: false }
+    { id: 'personal', name: 'Work', color: null, today: [], followups: [], done: [], followupsOpen: true, doneOpen: false },
+    { id: 'work', name: 'Personal', color: null, today: [], followups: [], done: [], followupsOpen: true, doneOpen: false }
   ]
 };
+
+// Open (not done) lists in each block. Follow-ups hold things already handed off —
+// waiting on a reply, a team review, or someone you delegated to.
+const OPEN_SECTIONS = ['today', 'followups'];
 
 let state;
 let dragging = null;
@@ -42,11 +46,44 @@ function normalizeState() {
   migrateToBlocks();
   state.blocks.forEach(b => {
     if (!b.today) b.today = [];
-    if (!b.backlog) b.backlog = [];
+    if (!b.followups) b.followups = [];
     if (!b.done) b.done = [];
+    if (b.followupsOpen === undefined) b.followupsOpen = true;
   });
   if (!Array.isArray(state.summaryOrder)) state.summaryOrder = [];
+  migrateBacklogToToday();
+  migrateWaitingToFollowups();
   backfillItemDates();
+}
+
+// Backlog was removed 2026-10-01. Keys off the old backlog/backlogOpen keys being
+// present: any items in it are appended to the bottom of that block's Today list,
+// then the keys are dropped (a tab still on older code may re-add them; this re-runs).
+function migrateBacklogToToday() {
+  let changed = false;
+  state.blocks.forEach(b => {
+    if (!('backlog' in b) && !('backlogOpen' in b)) return;
+    if (Array.isArray(b.backlog)) b.today.push(...b.backlog);
+    delete b.backlog;
+    delete b.backlogOpen;
+    changed = true;
+  });
+  if (changed) persist();
+}
+
+// Before Follow-ups existed, "Waiting for answer" was a flag on a Today item.
+// Keys off that old shape (a waiting item outside followups), so it also catches
+// anything a tab still running the old code flags later.
+function migrateWaitingToFollowups() {
+  let changed = false;
+  state.blocks.forEach(b => {
+    const waiting = b.today.filter(i => i.waiting);
+    if (!waiting.length) return;
+    b.today = b.today.filter(i => !i.waiting);
+    b.followups.push(...waiting);
+    changed = true;
+  });
+  if (changed) persist();
 }
 
 // Items created before createdAt/waitingSince existed. createdAt is recovered
@@ -54,7 +91,7 @@ function normalizeState() {
 // recovered, so an already-waiting item starts counting from today.
 function backfillItemDates() {
   let changed = false;
-  state.blocks.forEach(b => ['today', 'backlog', 'done'].forEach(section => {
+  state.blocks.forEach(b => [...OPEN_SECTIONS, 'done'].forEach(section => {
     b[section].forEach(item => {
       if (!item.createdAt) { item.createdAt = idTimestamp(item.id) || new Date().toISOString(); changed = true; }
       if (item.waiting && !item.waitingSince) { item.waitingSince = todayISO(); changed = true; }
@@ -126,23 +163,30 @@ const iconKebab = `<svg width="13" height="13" viewBox="0 0 13 13" fill="current
 
 const iconCalendar = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="10" height="9" rx="1"/><path d="M1.5 5.25h10"/><path d="M4 1v2"/><path d="M9 1v2"/></svg>`;
 
+const iconUndo = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4.5,2 1.5,5 4.5,8"/><path d="M1.5 5h6a3.5 3.5 0 0 1 0 7H5"/></svg>`;
+
 const iconNote = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="10" height="10" rx="1"/><path d="M4 4.75h5"/><path d="M4 7h5"/><path d="M4 9.25h3"/></svg>`;
 
 /* ─────────────────────────────────────────────
    Due-date helpers (plain YYYY-MM-DD string math — avoids Date/timezone pitfalls)
 ───────────────────────────────────────────── */
+// Due today, tomorrow, or already past (overdue items shouldn't drop out of the Summary).
 function isDueSoon(dueDate) {
   if (!dueDate) return false;
-  const today = todayISO();
-  return dueDate === today || dueDate === addDaysISO(today, 1);
+  return dueDate <= addDaysISO(todayISO(), 1);
+}
+
+function formatShortDate(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function formatDueLabel(iso) {
   const today = todayISO();
   if (iso === today) return 'Due today';
   if (iso === addDaysISO(today, 1)) return 'Due tomorrow';
-  const [y, m, d] = iso.split('-').map(Number);
-  return 'Due ' + new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (iso < today) return 'Was due ' + formatShortDate(iso);
+  return 'Due ' + formatShortDate(iso);
 }
 
 /* ─────────────────────────────────────────────
@@ -159,7 +203,7 @@ function handleAddBlockKeydown(event) {
 function addBlock(name) {
   name = (name || '').trim();
   if (!name) return;
-  state.blocks.push({ id: uid(), name, color: null, today: [], backlog: [], done: [], backlogOpen: false, doneOpen: false });
+  state.blocks.push({ id: uid(), name, color: null, today: [], followups: [], done: [], followupsOpen: true, doneOpen: false });
   persist();
   render();
 }
@@ -191,7 +235,7 @@ function setFontSize(size) {
 function deleteBlock(colKey) {
   const block = getBlock(colKey);
   if (!block) return;
-  const total = block.today.length + block.backlog.length + block.done.length;
+  const total = block.today.length + block.followups.length + block.done.length;
   const msg = total > 0
     ? `Delete "${block.name}"? This removes ${total} to-do${total === 1 ? '' : 's'} (including its Done history) permanently.`
     : `Delete "${block.name}"?`;
@@ -208,6 +252,7 @@ function addItem(colKey, section, text) {
   text = text.trim();
   if (!text) return;
   const item = { id: uid(), text, complete: false, priority: false, waiting: false, dueDate: null, notes: '', subtasks: [], subtasksOpen: false, createdAt: new Date().toISOString() };
+  if (section === 'followups') markFollowup(item, true);
   getBlock(colKey)[section].unshift(item);
   persist();
   render();
@@ -323,12 +368,26 @@ function onNotesChange(colKey, section, id, val) {
   persist();
 }
 
-function toggleWaiting(colKey, section, id) {
-  const item = getBlock(colKey)[section].find(i => i.id === id);
-  if (!item) return;
-  item.waiting = !item.waiting;
-  if (item.waiting) item.waitingSince = todayISO();
-  else delete item.waitingSince;
+// An item in Follow-ups carries waiting + waitingSince (the day it went in); both are
+// cleared when it moves back out, so the "since" date restarts if it's handed off again.
+function markFollowup(item, on) {
+  if (on) {
+    item.waiting = true;
+    if (!item.waitingSince) item.waitingSince = todayISO();
+  } else {
+    item.waiting = false;
+    delete item.waitingSince;
+  }
+}
+
+function moveItem(colKey, fromSection, id, toSection) {
+  const block = getBlock(colKey);
+  const idx = block[fromSection].findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const [item] = block[fromSection].splice(idx, 1);
+  markFollowup(item, toSection === 'followups');
+  block[toSection].unshift(item);
+  if (toSection === 'followups') block.followupsOpen = true;
   persist();
   render();
 }
@@ -505,7 +564,9 @@ function toggleItemMenu(event, colKey, section, id) {
   if (!item) return;
   const html = `
     <button class="todo-menu-item ${item.priority ? 'active' : ''}" onclick="togglePriority('${colKey}','${section}','${id}');closePopover();">${iconFlag}<span>Priority</span></button>
-    <button class="todo-menu-item ${item.waiting ? 'active' : ''}" onclick="toggleWaiting('${colKey}','${section}','${id}');closePopover();">${iconHourglass}<span>Waiting for answer</span></button>
+    ${section === 'followups'
+      ? `<button class="todo-menu-item" onclick="moveItem('${colKey}','followups','${id}','today');closePopover();">${iconUndo}<span>Move back to Today</span></button>`
+      : `<button class="todo-menu-item" onclick="moveItem('${colKey}','${section}','${id}','followups');closePopover();">${iconHourglass}<span>Move to Follow-ups</span></button>`}
     <label class="todo-menu-item todo-menu-date ${item.dueDate ? 'active' : ''}">
       ${iconCalendar}<span>Due date</span>
       <input type="date" class="todo-date-input" value="${item.dueDate || ''}"
@@ -563,14 +624,14 @@ function setBlockColor(colKey, hex) {
   render();
 }
 
-function toggleBacklog(colKey) {
-  getBlock(colKey).backlogOpen = !getBlock(colKey).backlogOpen;
+function toggleFollowups(colKey) {
+  getBlock(colKey).followupsOpen = !getBlock(colKey).followupsOpen;
   persist();
   render();
 }
 
 /* ─────────────────────────────────────────────
-   Drag & drop (reorder + move between today/backlog)
+   Drag & drop (reorder + move between today/follow-ups, across blocks)
 ───────────────────────────────────────────── */
 function onDragStart(event) {
   const row = event.currentTarget;
@@ -622,25 +683,25 @@ function getDragAfterElement(container, y) {
   }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
 }
 
-// Rebuilds today/backlog for one or two blocks (source + destination, when an item was
+// Rebuilds today/followups for one or two blocks (source + destination, when an item was
 // dragged across blocks) purely from the current DOM order — the dragged item's own
 // data-col/data-section attributes go stale the moment onDragOver physically relocates
 // its element into a different list, so lookups here go through a global by-id map
 // spanning every block instead of trusting those attributes.
 function reconcileBlocksFromDom(sourceCol, targetCol) {
   const byId = new Map();
-  state.blocks.forEach(b => {
-    b.today.forEach(it => byId.set(it.id, it));
-    b.backlog.forEach(it => byId.set(it.id, it));
-  });
+  state.blocks.forEach(b => OPEN_SECTIONS.forEach(section => b[section].forEach(it => byId.set(it.id, it))));
   const cols = sourceCol === targetCol ? [sourceCol] : [sourceCol, targetCol];
   cols.forEach(colKey => {
     const block = getBlock(colKey);
     if (!block) return;
-    const todayEls = [...document.querySelectorAll(`#list-${colKey}-today .todo-item`)];
-    const backlogEls = [...document.querySelectorAll(`#list-${colKey}-backlog .todo-item`)];
-    block.today = todayEls.map(el => byId.get(el.dataset.id)).filter(Boolean);
-    block.backlog = backlogEls.map(el => byId.get(el.dataset.id)).filter(Boolean);
+    OPEN_SECTIONS.forEach(section => {
+      const els = [...document.querySelectorAll(`#list-${colKey}-${section} .todo-item`)];
+      block[section] = els.map(el => byId.get(el.dataset.id)).filter(Boolean);
+      // Dragging into or out of Follow-ups stamps or clears its "since" date.
+      const isFollowups = section === 'followups';
+      block[section].forEach(it => { if (!!it.waiting !== isFollowups) markFollowup(it, isFollowups); });
+    });
   });
   persist();
   render();
@@ -722,11 +783,6 @@ function initAutoGrow() {
 /* ─────────────────────────────────────────────
    Render
 ───────────────────────────────────────────── */
-// Waiting-for items sit at the top of each list so they don't get forgotten.
-function sortForDisplay(list) {
-  return [...list].sort((a, b) => (b.waiting ? 1 : 0) - (a.waiting ? 1 : 0));
-}
-
 function renderRow(colKey, section, item) {
   const subtasks = item.subtasks || [];
   const subDone = subtasks.filter(s => s.complete).length;
@@ -734,29 +790,31 @@ function renderRow(colKey, section, item) {
   const subtasksOpen = !!item.subtasksOpen;
 
   return `
-    <div class="todo-item ${item.waiting ? 'waiting' : ''}" draggable="true" data-id="${item.id}" data-col="${colKey}" data-section="${section}"
+    <div class="todo-item" draggable="true" data-id="${item.id}" data-col="${colKey}" data-section="${section}"
          ondragstart="onDragStart(event)" ondragend="onDragEnd(event)">
       <div class="todo-row">
         <div class="todo-check ${item.complete ? 'checked' : ''} ${item.priority ? 'priority' : ''}"
              onclick="toggleComplete('${colKey}','${section}','${item.id}')"></div>
-        <textarea
-          class="todo-text todo-textarea ${item.complete ? 'done' : ''} ${item.priority ? 'priority' : ''}"
-          rows="1"
-          placeholder="To-do…"
-          onmousedown="event.stopPropagation()"
-          onclick="event.stopPropagation()"
-          oninput="autoGrowTextarea(this)"
-          onchange="onTextChange('${colKey}','${section}','${item.id}',this.value)"
-          onblur="onTextChange('${colKey}','${section}','${item.id}',this.value)"
-          onkeydown="if(event.key==='Enter'){this.blur();event.preventDefault();}"
-        >${escapeHtml(item.text)}</textarea>
+        <div class="todo-text-wrap">
+          <textarea
+            class="todo-text todo-textarea ${item.complete ? 'done' : ''} ${item.priority ? 'priority' : ''}"
+            rows="1"
+            placeholder="${section === 'followups' ? 'Follow-up…' : 'To-do…'}"
+            onmousedown="event.stopPropagation()"
+            onclick="event.stopPropagation()"
+            oninput="autoGrowTextarea(this)"
+            onchange="onTextChange('${colKey}','${section}','${item.id}',this.value)"
+            onblur="onTextChange('${colKey}','${section}','${item.id}',this.value)"
+            onkeydown="if(event.key==='Enter'){this.blur();event.preventDefault();}"
+          >${escapeHtml(item.text)}</textarea>
+          ${section === 'followups' ? renderFollowupMeta(item) : ''}
+        </div>
         ${hasSubtasks ? `
           <button class="todo-subtoggle" onclick="event.stopPropagation();toggleSubtasks('${colKey}','${section}','${item.id}')">
             <span class="chevron ${subtasksOpen ? 'open' : ''}">${iconChevron}</span>${subDone}/${subtasks.length}
           </button>
         ` : ''}
-        ${waitingDays(item) >= 1 ? `<span class="todo-waiting-age ${waitingDays(item) >= WAITING_NUDGE_DAYS ? 'stale' : ''}" title="Waiting ${waitingDays(item)} day${waitingDays(item) === 1 ? '' : 's'}">${waitingDays(item)}d</span>` : ''}
-        <button class="icon-btn todo-kebab reveal-on-hover ${item.priority || item.waiting || item.dueDate || item.notes ? 'active' : ''}" title="More"
+        <button class="icon-btn todo-kebab reveal-on-hover ${item.priority || item.dueDate || item.notes ? 'active' : ''}" title="More"
                 onclick="toggleItemMenu(event,'${colKey}','${section}','${item.id}')">${iconKebab}</button>
       </div>
       ${hasSubtasks || subtasksOpen ? `
@@ -771,6 +829,17 @@ function renderRow(colKey, section, item) {
       ` : ''}
     </div>
   `;
+}
+
+// "Since Sep 28 · 4d · Due Oct 3" under a follow-up's text — the age goes coral once
+// it's worth chasing, the due date once it's today, tomorrow, or past.
+function renderFollowupMeta(item) {
+  const days = waitingDays(item);
+  const parts = [];
+  if (item.waitingSince) parts.push(`<span>Since ${formatShortDate(item.waitingSince)}</span>`);
+  if (days >= 1) parts.push(`<span class="${days >= WAITING_NUDGE_DAYS ? 'stale' : ''}">${days}d</span>`);
+  if (item.dueDate) parts.push(`<span class="${isDueSoon(item.dueDate) ? 'stale' : ''}">${formatDueLabel(item.dueDate)}</span>`);
+  return `<div class="todo-followup-meta">${parts.join('<span class="sep">·</span>')}</div>`;
 }
 
 function renderSubRow(colKey, section, parentId, sub) {
@@ -813,9 +882,8 @@ function renderDoneRow(colKey, item) {
 function renderColumn(colKey) {
   const col = getBlock(colKey);
   const openCount = col.today.filter(i => !i.complete).length;
-  const backlogCount = col.backlog.length;
+  const followupsOpen = col.followupsOpen;
   const doneCount = col.done.length;
-  const open = col.backlogOpen;
   const doneOpen = col.doneOpen;
   const colorVars = col.color ? `--block-color:${col.color};--block-tint:${hexToRgba(col.color, 0.07)};` : '';
 
@@ -845,25 +913,25 @@ function renderColumn(colKey) {
 
       <div class="todo-list" id="list-${colKey}-today" data-col="${colKey}" data-section="today"
            ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
-        ${sortForDisplay(col.today).map(item => renderRow(colKey, 'today', item)).join('')}
+        ${col.today.map(item => renderRow(colKey, 'today', item)).join('')}
       </div>
 
-      <button class="todo-backlog-toggle" onclick="toggleBacklog('${colKey}')">
-        <span class="chevron ${open ? 'open' : ''}">${iconChevron}</span>
-        Backlog
-        <span class="section-count">${backlogCount}</span>
+      <button class="todo-backlog-toggle" onclick="toggleFollowups('${colKey}')">
+        <span class="chevron ${followupsOpen ? 'open' : ''}">${iconChevron}</span>
+        Follow-ups
+        <span class="section-count">${col.followups.length}</span>
       </button>
 
-      <div class="todo-backlog-wrap" style="display:${open ? 'block' : 'none'}">
+      <div class="todo-backlog-wrap" style="display:${followupsOpen ? 'block' : 'none'}">
         <div class="todo-quick-add">
-          <input class="todo-add-input" placeholder="Add to backlog…" data-col="${colKey}" data-section="backlog"
+          <input class="todo-add-input" placeholder="Waiting on someone? Add a follow-up…" data-col="${colKey}" data-section="followups"
                  onkeydown="handleAddKeydown(event)" />
         </div>
-        <div class="todo-list" id="list-${colKey}-backlog" data-col="${colKey}" data-section="backlog"
+        <div class="todo-list" id="list-${colKey}-followups" data-col="${colKey}" data-section="followups"
              ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
-          ${col.backlog.length === 0
-            ? '<div class="todo-backlog-empty">Nothing in the backlog</div>'
-            : sortForDisplay(col.backlog).map(item => renderRow(colKey, 'backlog', item)).join('')}
+          ${col.followups.length === 0
+            ? '<div class="todo-backlog-empty">Nothing waiting on anyone</div>'
+            : col.followups.map(item => renderRow(colKey, 'followups', item)).join('')}
         </div>
       </div>
 
@@ -890,7 +958,7 @@ function renderColumn(colKey) {
 function collectImportantItems() {
   const items = [];
   state.blocks.forEach(block => {
-    ['today', 'backlog'].forEach(section => {
+    OPEN_SECTIONS.forEach(section => {
       block[section].forEach(item => {
         if (item.priority || isDueSoon(item.dueDate) || waitingDays(item) >= WAITING_NUDGE_DAYS) {
           items.push({ colKey: block.id, colName: block.name, section, item });
@@ -935,7 +1003,7 @@ function renderImportantRow({ colKey, colName, section, item }) {
       ${item.dueDate ? `<span class="todo-important-due ${isDueSoon(item.dueDate) ? 'soon' : ''}">${formatDueLabel(item.dueDate)}</span>` : ''}
       ${waitingDays(item) >= WAITING_NUDGE_DAYS ? `<span class="todo-important-due soon" title="Waiting for an answer — worth chasing">Waiting ${waitingDays(item)}d</span>` : ''}
       <button class="todo-important-tag" onclick="jumpToBlock('${colKey}')" title="Jump to block">
-        ${escapeHtml(colName)}${section === 'backlog' ? ' · Backlog' : ''}
+        ${escapeHtml(colName)}${section === 'followups' ? ' · Follow-up' : ''}
       </button>
     </div>
   `;

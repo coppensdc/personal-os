@@ -211,6 +211,14 @@
 
 .todo-important-list > .todo-row:first-child { border-top: none; }
 
+/* On phones the due/waiting labels and block tag drop under the text instead of
+   squeezing it to a sliver. */
+@media (max-width: 640px) {
+  .todo-important-row { flex-wrap: wrap; row-gap: .25rem; }
+  .todo-important-row .todo-text { flex-basis: calc(100% - 3.5rem); }
+  .todo-important-row .todo-text + * { margin-left: 2.25rem; }
+}
+
 .todo-important-handle {
   display: flex;
   align-items: center;
@@ -425,16 +433,9 @@
   background: var(--surface-2);
 }
 
-/* Waiting for answer — muted wash, wins over the zebra stripe, sinks to the bottom via sortForDisplay() */
-.todo-list > .todo-item.waiting > .todo-row {
-  background: var(--neutral-faint);
-}
-
-.todo-list > .todo-item.waiting > .todo-row:hover {
-  background: var(--surface-2);
-}
-
-.todo-item.waiting > .todo-row .todo-text { color: var(--text-2); }
+/* Text column — holds the textarea, plus the "Since … · Nd · Due …" line on follow-ups */
+.todo-text-wrap { flex: 1; min-width: 0; }
+.todo-text-wrap .todo-text { width: 100%; }
 
 .todo-check {
   flex-shrink: 0;
@@ -751,13 +752,15 @@
   .todo-check.checked::after { width: 9px; height: 6px; }
 }
 
-/* ── Waiting age ("4d") — coral once it's worth chasing ── */
-.todo-waiting-age {
-  flex-shrink: 0;
-  align-self: flex-start;
-  margin-top: 4px;
+/* ── Follow-up meta line — age goes coral once it's worth chasing, due date once it's near ── */
+.todo-followup-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 .375rem;
+  margin-top: .125rem;
   font-size: .6875rem;
   font-weight: 400;
   color: var(--text-3);
 }
-.todo-waiting-age.stale { color: var(--accent); }
+.todo-followup-meta .stale { color: var(--accent); }
+.todo-followup-meta .sep { color: var(--text-3); }
