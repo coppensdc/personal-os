@@ -42,7 +42,6 @@
 }
 .home-capture-msg { min-height: 1.25rem; margin: .375rem 0 1.25rem; font-size: .8125rem; font-weight: 300; color: var(--text-2); }
 
-.home-due { color: var(--accent); }
 
 .home-account { margin-top: 3rem; font-size: .8125rem; font-weight: 300; color: var(--text-3); }
 .home-account summary { cursor: pointer; }

@@ -1,8 +1,8 @@
 /* ─────────────────────────────────────────────
-   Home: quick capture into To Do's, decisions-due count, app password
+   Home: quick capture into To Do's, open ideas count, app password
 ───────────────────────────────────────────── */
 const TODOS_KEY = 'personal-os-todos-v1';
-const DECISIONS_KEY = 'personal-os-decisions-v1';
+const IDEAS_KEY = 'personal-os-ideas-v1';
 const LAST_BLOCK_KEY = 'personal-os-capture-block'; // per-device convenience only
 
 document.getElementById('today-label').textContent = getTodayLabel();
@@ -49,16 +49,16 @@ async function captureTodo() {
   setMsg('home-capture-msg', `Added to ${block.name}`);
 }
 
-async function loadDecisionsDue() {
-  renderDecisionsDue(await loadState(DECISIONS_KEY, {}));
+async function loadIdeasCount() {
+  renderIdeasCount(await loadState(IDEAS_KEY, {}));
 }
 
-function renderDecisionsDue(data) {
-  const el = document.getElementById('home-decisions-desc');
+// `shipped` is stamped onto ideas by the Ideas page when it sees them in ideas/log.js.
+function renderIdeasCount(data) {
+  const el = document.getElementById('home-ideas-desc');
   if (!el.dataset.defaultText) el.dataset.defaultText = el.textContent;
-  const due = (data.decisions || []).filter(d => !d.verdict && d.reviewOn && d.reviewOn <= todayISO()).length;
-  el.textContent = due ? `${due} due for review` : el.dataset.defaultText;
-  el.classList.toggle('home-due', !!due);
+  const open = (data.ideas || []).filter(i => !i.shipped).length;
+  el.textContent = open ? `${open} open · Claude builds one a week` : el.dataset.defaultText;
 }
 
 async function savePassword() {
@@ -71,6 +71,6 @@ async function savePassword() {
 }
 
 loadBlocks();
-loadDecisionsDue();
+loadIdeasCount();
 watchState(TODOS_KEY, {}, renderBlocks);
-watchState(DECISIONS_KEY, {}, renderDecisionsDue);
+watchState(IDEAS_KEY, {}, renderIdeasCount);
