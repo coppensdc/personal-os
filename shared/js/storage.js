@@ -240,6 +240,22 @@ function daysBetweenISO(fromIso, toIso) {
   return Math.round((parseISODate(toIso) - parseISODate(fromIso)) / 86400000);
 }
 
+// Monday of the week containing iso.
+function weekStartISO(iso) {
+  return addDaysISO(iso, -((parseISODate(iso).getDay() + 6) % 7));
+}
+
+// The week being planned on a given day (Monday review + To Do's Summary): that week
+// through Friday, the next one from Saturday on — a weekend review plans the week ahead.
+function planWeekStartISO(iso = todayISO()) {
+  const dow = (parseISODate(iso).getDay() + 6) % 7; // Mon=0 … Sun=6
+  return addDaysISO(weekStartISO(iso), dow >= 5 ? 7 : 0);
+}
+
+function weekdayShort(iso) {
+  return parseISODate(iso).toLocaleDateString('en-US', { weekday: 'short' });
+}
+
 // uid() starts with Date.now() in base 36 (8 chars until 2059) — recover it.
 function idTimestamp(id) {
   const ms = parseInt(String(id).slice(0, 8), 36);
