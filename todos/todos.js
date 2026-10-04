@@ -190,14 +190,9 @@ function formatDueLabel(iso) {
 }
 
 /* ─────────────────────────────────────────────
-   Plan (set in the Monday review, or "Plan for" in the item menu).
-   item.plannedFor is the YYYY-MM-DD you mean to do it — separate from dueDate,
-   which is the deadline. An open item planned for a past day has slipped.
+   Plan (set in Review, or from the item menu). The rules — slipped, pushed,
+   lingering — live in shared/js/plan.js so Review applies the same ones.
 ───────────────────────────────────────────── */
-function isBehind(item) {
-  return !!item.plannedFor && item.plannedFor < todayISO();
-}
-
 function formatPlanLabel(iso) {
   const today = todayISO();
   const near = Math.abs(daysBetweenISO(today, iso)) < 7;
@@ -207,20 +202,22 @@ function formatPlanLabel(iso) {
   return near ? weekdayShort(iso) : formatShortDate(iso);
 }
 
-// "Week of Oct 5 · 3/8 planned done · 2 slipped" — planned counts open and done items
-// planned within the plan week; slipped counts every open item planned for a past day.
+// "Week of Oct 5 · 3/8 planned done · 2 slipped · 4 lingering" — planned counts open
+// and done items planned within the plan week; slipped counts every open item planned
+// for a past day; lingering counts Today items open for weeks or pushed repeatedly.
 function weekPlanStats() {
   const start = planWeekStartISO(), end = addDaysISO(start, 6);
   const inWeek = i => !!i.plannedFor && i.plannedFor >= start && i.plannedFor <= end;
-  let planned = 0, done = 0, behind = 0;
+  let planned = 0, done = 0, behind = 0, lingering = 0;
   state.blocks.forEach(b => {
     OPEN_SECTIONS.forEach(section => b[section].forEach(i => {
       if (inWeek(i)) planned++;
       if (isBehind(i)) behind++;
+      if (section === 'today' && isLingering(i)) lingering++;
     }));
     b.done.forEach(i => { if (inWeek(i)) { planned++; done++; } });
   });
-  return { start, planned, done, behind };
+  return { start, planned, done, behind, lingering };
 }
 
 // A review done on a weekend counts for the week after (see planWeekStartISO).
@@ -404,6 +401,16 @@ function setPlannedFor(colKey, section, id, value) {
   const item = getBlock(colKey)[section].find(i => i.id === id);
   if (!item) return;
   item.plannedFor = value || null;
+  if (item.plannedFor) bringItemBack(item);
+  persist();
+  render();
+}
+
+function togglePushed(colKey, section, id) {
+  const item = getBlock(colKey)[section].find(i => i.id === id);
+  if (!item) return;
+  if (isPushed(item)) bringItemBack(item);
+  else pushItemToNextWeek(item);
   persist();
   render();
 }
@@ -619,6 +626,7 @@ function toggleItemMenu(event, colKey, section, id) {
       <input type="date" class="todo-date-input" value="${item.plannedFor || ''}"
              onclick="event.stopPropagation()" onchange="setPlannedFor('${colKey}','${section}','${id}',this.value)">
     </label>
+    <button class="todo-menu-item" onclick="togglePushed('${colKey}','${section}','${id}');closePopover();">${isPushed(item) ? iconUndo : iconChevron}<span>${isPushed(item) ? 'Bring back to this week' : 'Push to next week'}</span></button>
     <label class="todo-menu-item todo-menu-date ${item.dueDate ? 'active' : ''}">
       ${iconCalendar}<span>Due date</span>
       <input type="date" class="todo-date-input" value="${item.dueDate || ''}"
@@ -842,7 +850,7 @@ function renderRow(colKey, section, item) {
   const subtasksOpen = !!item.subtasksOpen;
 
   return `
-    <div class="todo-item" draggable="true" data-id="${item.id}" data-col="${colKey}" data-section="${section}"
+    <div class="todo-item ${isPushed(item) ? 'pushed' : ''}" draggable="true" data-id="${item.id}" data-col="${colKey}" data-section="${section}"
          ondragstart="onDragStart(event)" ondragend="onDragEnd(event)">
       <div class="todo-row">
         <div class="todo-check ${item.complete ? 'checked' : ''} ${item.priority ? 'priority' : ''}"
@@ -889,7 +897,9 @@ function renderRow(colKey, section, item) {
 // Anything planned for a past day reads "Slipped from …" in coral.
 function renderItemMeta(item, section) {
   const parts = [];
-  const plan = item.plannedFor
+  const plan = isPushed(item)
+    ? `<span>Pushed to week of ${formatShortDate(item.deferredUntil)}</span>`
+    : item.plannedFor
     ? `<span class="${isBehind(item) ? 'stale' : ''}">${section === 'followups' && !isBehind(item) ? 'Chase ' : ''}${formatPlanLabel(item.plannedFor)}</span>`
     : '';
   if (section === 'followups') {
@@ -1080,15 +1090,16 @@ function renderImportantRow({ colKey, colName, section, item }) {
 }
 
 function renderPlanLine() {
-  const { start, planned, done, behind } = weekPlanStats();
+  const { start, planned, done, behind, lingering } = weekPlanStats();
   const parts = [`<span>Week of ${formatShortDate(start)}</span>`];
   parts.push(planned ? `<span>${done}/${planned} planned done</span>` : '<span>Nothing planned yet</span>');
   if (behind) parts.push(`<span class="stale">${behind} slipped</span>`);
+  if (lingering) parts.push(`<span>${lingering} lingering</span>`);
   return `
     <div class="todo-plan-line">
       ${parts.join('<span class="sep">·</span>')}
       <a class="todo-plan-review ${needsReview() ? 'due' : ''}" href="../review/index.html">
-        ${needsReview() ? 'Do your Monday review' : 'Monday review'}
+        ${needsReview() ? 'Do your review' : 'Review'}
       </a>
     </div>
   `;

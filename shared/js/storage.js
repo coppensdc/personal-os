@@ -245,7 +245,7 @@ function weekStartISO(iso) {
   return addDaysISO(iso, -((parseISODate(iso).getDay() + 6) % 7));
 }
 
-// The week being planned on a given day (Monday review + To Do's Summary): that week
+// The week being planned on a given day (Review + To Do's Summary): that week
 // through Friday, the next one from Saturday on — a weekend review plans the week ahead.
 function planWeekStartISO(iso = todayISO()) {
   const dow = (parseISODate(iso).getDay() + 6) % 7; // Mon=0 … Sun=6

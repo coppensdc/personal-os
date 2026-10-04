@@ -786,3 +786,6 @@
 }
 .todo-followup-meta .stale { color: var(--accent); }
 .todo-followup-meta .sep { color: var(--text-3); }
+
+/* Pushed to next week (from Review or the item menu) — still listed, just quieter */
+.todo-item.pushed .todo-text { color: var(--text-3); }
