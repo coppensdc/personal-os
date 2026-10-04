@@ -5,6 +5,7 @@
   const items = [
     { key: 'home',     label: 'Home',     href: `${base}/index.html` },
     { key: 'todos',    label: "To Do's",  href: `${base}/todos/index.html` },
+    { key: 'review',   label: 'Review',   href: `${base}/review/index.html` },
     { key: 'notepad',  label: 'Notepad',  href: `${base}/notepad/index.html` },
     { key: 'ideas',    label: 'Ideas',    href: `${base}/ideas/index.html` },
   ];
