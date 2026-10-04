@@ -265,7 +265,7 @@ function render() {
       followups, { days, showBlock: 'plain' }, 'Nothing waiting on anyone')}
 
     ${pushed.length ? `
-      <details class="review-pushed">
+      <details class="review-pushed" open>
         <summary>Pushed to next week <span class="section-count">${pushed.length}</span></summary>
         <div class="review-list">${pushed.map(e => renderRow(e, { days, showBlock: true, pushed: true })).join('')}</div>
       </details>

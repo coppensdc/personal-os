@@ -952,6 +952,12 @@ function renderDoneRow(colKey, item) {
   `;
 }
 
+// Pushed items stay listed, just below everything for this week (display order only —
+// a drag persists what's on screen, which simply moves them down in the data too).
+function pushedLast(items) {
+  return [...items.filter(i => !isPushed(i)), ...items.filter(isPushed)];
+}
+
 function renderColumn(colKey) {
   const col = getBlock(colKey);
   const openCount = col.today.filter(i => !i.complete).length;
@@ -986,7 +992,7 @@ function renderColumn(colKey) {
 
       <div class="todo-list" id="list-${colKey}-today" data-col="${colKey}" data-section="today"
            ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
-        ${col.today.map(item => renderRow(colKey, 'today', item)).join('')}
+        ${pushedLast(col.today).map(item => renderRow(colKey, 'today', item)).join('')}
       </div>
 
       <button class="todo-backlog-toggle" onclick="toggleFollowups('${colKey}')">
@@ -1004,7 +1010,7 @@ function renderColumn(colKey) {
              ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
           ${col.followups.length === 0
             ? '<div class="todo-backlog-empty">Nothing waiting on anyone</div>'
-            : col.followups.map(item => renderRow(colKey, 'followups', item)).join('')}
+            : pushedLast(col.followups).map(item => renderRow(colKey, 'followups', item)).join('')}
         </div>
       </div>
 
