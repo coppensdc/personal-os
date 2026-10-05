@@ -40,6 +40,8 @@
   padding: .375rem .875rem;
   cursor: pointer;
 }
+.list-row-desc .hot { color: var(--accent); }
+
 .home-capture-msg { min-height: 1.25rem; margin: .375rem 0 1.25rem; font-size: .8125rem; font-weight: 300; color: var(--text-2); }
 
 
