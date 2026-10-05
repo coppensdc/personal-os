@@ -8,6 +8,6 @@ window.IDEAS_LOG = [
     title: 'Home shows today at a glance',
     summary: "Home's To Do's row now says how many to-dos are planned for today, slipped or due soon, and the Review row turns coral until this week's review is done.",
     ideaId: null,
-    pr: '',
+    pr: 'https://github.com/coppensdc/personal-os/pull/7',
   },
 ];
