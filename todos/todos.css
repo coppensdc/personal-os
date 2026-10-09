@@ -42,6 +42,9 @@
 
 /* ── Item menu (kebab button + popover — priority / waiting / add sub-task / delete) ── */
 .todo-kebab { margin-right: .5rem; }
+
+/* Small always-visible marker on rows that have notes; click opens them */
+.todo-notes-ind[hidden] { display: none; }
 .todo-kebab.menu-open { opacity: 1; color: var(--accent); }
 
 .todo-item-menu-catcher {

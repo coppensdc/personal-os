@@ -420,6 +420,16 @@ function onNotesChange(colKey, section, id, val) {
   if (!item) return;
   item.notes = val;
   persist();
+  // No render() here (it would close the menu mid-edit) — just sync the row's notes icon.
+  const ind = document.querySelector(`.todo-item[data-id="${id}"] .todo-notes-ind`);
+  if (ind) { ind.hidden = !val.trim(); ind.title = val.trim(); }
+}
+
+// The notes icon on a row opens the item menu with the notes box already expanded.
+function openItemNotes(event, colKey, section, id) {
+  toggleItemMenu(event, colKey, section, id);
+  const btn = document.querySelector('.todo-menu-notes .todo-menu-item');
+  if (btn) toggleNotesEditor(btn);
 }
 
 // An item in Follow-ups carries waiting + waitingSince (the day it went in); both are
@@ -874,6 +884,8 @@ function renderRow(colKey, section, item) {
             <span class="chevron ${subtasksOpen ? 'open' : ''}">${iconChevron}</span>${subDone}/${subtasks.length}
           </button>
         ` : ''}
+        <button class="icon-btn todo-notes-ind" ${(item.notes || '').trim() ? '' : 'hidden'} title="${escapeHtml((item.notes || '').trim())}"
+                onclick="openItemNotes(event,'${colKey}','${section}','${item.id}')">${iconNote}</button>
         <button class="icon-btn todo-kebab reveal-on-hover ${item.priority || item.dueDate || item.plannedFor || item.notes ? 'active' : ''}" title="More"
                 onclick="toggleItemMenu(event,'${colKey}','${section}','${item.id}')">${iconKebab}</button>
       </div>
