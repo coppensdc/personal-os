@@ -223,6 +223,28 @@
 
 .todo-important-list > .todo-row:first-child { border-top: none; }
 
+/* Week plan line under the Summary title — progress on the Monday review's plan */
+.todo-plan-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .125rem .375rem;
+  margin: -.25rem 0 .5rem;
+  font-size: .75rem;
+  font-weight: 400;
+  color: var(--text-3);
+}
+.todo-plan-line .stale { color: var(--accent); font-weight: 500; }
+.todo-plan-review {
+  margin-left: auto;
+  color: var(--text-3);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+.todo-plan-review:hover,
+.todo-plan-review.due { color: var(--accent); }
+.todo-plan-review.due { font-weight: 500; }
+
 /* On phones the due/waiting labels and block tag drop under the text instead of
    squeezing it to a sliver. */
 @media (max-width: 640px) {
@@ -776,3 +798,6 @@
 }
 .todo-followup-meta .stale { color: var(--accent); }
 .todo-followup-meta .sep { color: var(--text-3); }
+
+/* Pushed to next week (from Review or the item menu) — still listed, just quieter */
+.todo-item.pushed .todo-text { color: var(--text-3); }
