@@ -953,41 +953,57 @@ function renderColumn(colKey) {
 }
 
 /* ─────────────────────────────────────────────
-   Important summary — priority-flagged items across every block
+   Summary — open items across every block, grouped by why they're here:
+   Flagged first, then Due (overdue/today/tomorrow), then To chase (stale follow-ups).
+   Each item lands in the first group it qualifies for, so it's listed once.
 ───────────────────────────────────────────── */
 function collectImportantItems() {
-  const items = [];
+  const groups = { flagged: [], due: [], chase: [] };
   state.blocks.forEach(block => {
     OPEN_SECTIONS.forEach(section => {
       block[section].forEach(item => {
-        if (item.priority || isDueSoon(item.dueDate) || waitingDays(item) >= WAITING_NUDGE_DAYS) {
-          items.push({ colKey: block.id, colName: block.name, section, item });
-        }
+        const entry = { colKey: block.id, colName: block.name, section, item };
+        if (item.priority) groups.flagged.push(entry);
+        else if (isDueSoon(item.dueDate)) groups.due.push(entry);
+        else if (waitingDays(item) >= WAITING_NUDGE_DAYS) groups.chase.push(entry);
       });
     });
   });
-  items.sort((a, b) => {
+  const byDue = (a, b) => {
     const da = a.item.dueDate || '9999-99-99';
     const db = b.item.dueDate || '9999-99-99';
     return da < db ? -1 : da > db ? 1 : 0;
-  });
+  };
+  groups.flagged.sort(byDue);
+  groups.due.sort(byDue);
+  groups.chase.sort((a, b) => waitingDays(b.item) - waitingDays(a.item));
 
-  // Manual drag order (state.summaryOrder, an array of item ids) wins where it applies.
-  // Items never manually placed — including ones that just started showing up here —
-  // fall in after it, still in due-date order among themselves.
-  const byId = new Map(items.map(entry => [entry.item.id, entry]));
+  // Manual drag order (state.summaryOrder, an array of item ids) applies to Flagged only.
+  // Items never manually placed — including newly flagged ones — fall in after it,
+  // still in due-date order among themselves.
+  const byId = new Map(groups.flagged.map(entry => [entry.item.id, entry]));
   const ordered = (state.summaryOrder || []).map(id => byId.get(id)).filter(Boolean);
   const orderedIds = new Set(ordered.map(entry => entry.item.id));
-  const rest = items.filter(entry => !orderedIds.has(entry.item.id));
-  return [...ordered, ...rest];
+  groups.flagged = [...ordered, ...groups.flagged.filter(entry => !orderedIds.has(entry.item.id))];
+  return groups;
 }
 
-function renderImportantRow({ colKey, colName, section, item }) {
+// At most one label per row: the most urgent reason. Coral only when it needs action.
+function summaryLabel(item) {
+  if (isDueSoon(item.dueDate)) return { text: formatDueLabel(item.dueDate), soon: true };
+  const days = waitingDays(item);
+  if (days >= WAITING_NUDGE_DAYS) return { text: `Waiting ${days}d`, soon: true };
+  if (item.dueDate) return { text: formatDueLabel(item.dueDate), soon: false };
+  return null;
+}
+
+function renderImportantRow({ colKey, colName, section, item }, group) {
   const flagged = !!item.priority;
+  const label = summaryLabel(item);
   return `
     <div class="todo-row todo-important-row" data-id="${item.id}">
-      <span class="todo-important-handle reveal-on-hover" title="Drag to reorder" draggable="true" data-id="${item.id}"
-            ondragstart="onSummaryDragStart(event)" ondragend="onSummaryDragEnd(event)">${iconGrip}</span>
+      ${group === 'flagged' ? `<span class="todo-important-handle reveal-on-hover" title="Drag to reorder" draggable="true" data-id="${item.id}"
+            ondragstart="onSummaryDragStart(event)" ondragend="onSummaryDragEnd(event)">${iconGrip}</span>` : ''}
       <div class="todo-check ${flagged ? 'priority' : ''} ${item.complete ? 'checked' : ''}"
            onclick="toggleComplete('${colKey}','${section}','${item.id}')"></div>
       <textarea
@@ -1000,35 +1016,48 @@ function renderImportantRow({ colKey, colName, section, item }) {
         onblur="onTextChange('${colKey}','${section}','${item.id}',this.value)"
         onkeydown="if(event.key==='Enter'){this.blur();event.preventDefault();}"
       >${escapeHtml(item.text)}</textarea>
-      ${item.dueDate ? `<span class="todo-important-due ${isDueSoon(item.dueDate) ? 'soon' : ''}">${formatDueLabel(item.dueDate)}</span>` : ''}
-      ${waitingDays(item) >= WAITING_NUDGE_DAYS ? `<span class="todo-important-due soon" title="Waiting for an answer — worth chasing">Waiting ${waitingDays(item)}d</span>` : ''}
+      ${label ? `<span class="todo-important-due ${label.soon ? 'soon' : ''}">${label.text}</span>` : ''}
       <button class="todo-important-tag" onclick="jumpToBlock('${colKey}')" title="Jump to block">
-        ${escapeHtml(colName)}${section === 'followups' ? ' · Follow-up' : ''}
+        ${escapeHtml(colName)}${section === 'followups' && group !== 'chase' ? ' · Follow-up' : ''}
       </button>
     </div>
   `;
 }
 
+const SUMMARY_GROUPS = [
+  { key: 'flagged', label: 'Flagged' },
+  { key: 'due',     label: 'Due' },
+  { key: 'chase',   label: 'To chase' },
+];
+
 function renderImportant() {
-  const items = collectImportantItems();
+  const groups = collectImportantItems();
+  const total = SUMMARY_GROUPS.reduce((n, g) => n + groups[g.key].length, 0);
+  const body = SUMMARY_GROUPS.filter(g => groups[g.key].length).map(g => `
+    <div class="todo-important-group">
+      <div class="todo-important-group-label">${g.label} <span class="todo-important-group-count">${groups[g.key].length}</span></div>
+      <div class="todo-important-list" data-group="${g.key}"
+           ${g.key === 'flagged' ? 'ondragover="onSummaryDragOver(event)" ondrop="onSummaryDrop(event)" ondragleave="onSummaryDragLeave(event)"' : ''}>
+        ${groups[g.key].map(entry => renderImportantRow(entry, g.key)).join('')}
+      </div>
+    </div>
+  `).join('');
   return `
     <section class="todo-important">
       <div class="todo-important-header">
         <span class="todo-important-icon">${iconFlag}</span>
         <span class="todo-important-title">Summary</span>
-        <span class="section-count">${items.length}</span>
+        <span class="section-count">${total}</span>
       </div>
-      <div class="todo-important-list" ondragover="onSummaryDragOver(event)" ondrop="onSummaryDrop(event)" ondragleave="onSummaryDragLeave(event)">
-        ${items.length === 0
-          ? '<div class="todo-backlog-empty">Nothing flagged, due soon, or waiting too long</div>'
-          : items.map(renderImportantRow).join('')}
-      </div>
+      ${total === 0
+        ? '<div class="todo-backlog-empty">Nothing flagged, due soon, or waiting too long</div>'
+        : body}
     </section>
   `;
 }
 
 /* ─────────────────────────────────────────────
-   Summary drag & drop (manual reorder of the flagged/due-soon list)
+   Summary drag & drop (manual reorder of the Flagged group)
 ───────────────────────────────────────────── */
 function onSummaryDragStart(event) {
   const handle = event.currentTarget;
@@ -1086,7 +1115,7 @@ function getSummaryDragAfterElement(container, y) {
 // unflagged, no longer due soon) simply drop out next render, and any id that shows up
 // again later has lost its old manual position (collectImportantItems() treats it as new).
 function reconcileSummaryOrderFromDom() {
-  const list = document.querySelector('.todo-important-list');
+  const list = document.querySelector('.todo-important-list[data-group="flagged"]');
   if (!list) return;
   state.summaryOrder = [...list.querySelectorAll('.todo-important-row')].map(el => el.dataset.id);
   persist();

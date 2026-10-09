@@ -153,7 +153,7 @@
 
 .todo-color-menu .todo-menu-item { padding: .5rem .375rem; }
 
-/* ── Important summary — priority-flagged items across every block ── */
+/* ── Summary — Flagged / Due / To chase groups across every block ── */
 .todo-important {
   margin-bottom: 1.75rem;
 }
@@ -179,6 +179,18 @@
 }
 
 .todo-important-header .section-count { margin-left: auto; }
+
+.todo-important-group + .todo-important-group { margin-top: .875rem; }
+
+.todo-important-group-label {
+  font-size: .8125rem;
+  font-weight: 400;
+  color: var(--text-3);
+  padding-bottom: .25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.todo-important-group-count { margin-left: .25rem; }
 
 .todo-important-row .todo-important-due {
   flex-shrink: 0;
