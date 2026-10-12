@@ -5,5 +5,5 @@
 window.IDEAS_LOG = [
   { date: '2026-10-12', title: "To Do's: reopen a to-do you marked done by mistake",
     summary: 'Done rows now have an undo button that puts the to-do back where it was (Today or Follow-ups) instead of making you delete and retype it.',
-    ideaId: null, pr: '' },
+    ideaId: null, pr: 'https://github.com/coppensdc/personal-os/pull/8' },
 ];
