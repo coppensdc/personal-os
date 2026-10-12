@@ -376,6 +376,23 @@ function deleteDoneItem(colKey, id) {
   render();
 }
 
+// Undo a mark-done: back to the top of the list it came from (Follow-ups if it still
+// carries the waiting flag, else Today). The "what did you do" note goes with the completion.
+function reopenDoneItem(colKey, id) {
+  const block = getBlock(colKey);
+  const idx = block.done.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const [item] = block.done.splice(idx, 1);
+  item.complete = false;
+  delete item.note;
+  delete item.completedAt;
+  const section = item.waiting ? 'followups' : 'today';
+  block[section].unshift(item);
+  if (section === 'followups') block.followupsOpen = true;
+  persist();
+  render();
+}
+
 function formatDoneDate(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -958,6 +975,8 @@ function renderDoneRow(colKey, item) {
         ${item.note ? `<div class="todo-done-note">${escapeHtml(item.note)}</div>` : ''}
       </div>
       <span class="todo-done-date">${formatDoneDate(item.completedAt)}</span>
+      <button class="icon-btn reveal-on-hover" title="Not done — reopen" aria-label="Reopen"
+              onclick="reopenDoneItem('${colKey}','${item.id}')">${iconUndo}</button>
       <button class="icon-btn del reveal-on-hover" title="Delete"
               onclick="deleteDoneItem('${colKey}','${item.id}')">${iconTrash}</button>
     </div>
