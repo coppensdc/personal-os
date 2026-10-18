@@ -71,6 +71,15 @@ function deleteIdea(id) {
   render();
 }
 
+// Tap-friendly alternative to dragging — touch devices have no drag handle.
+function moveToTop(id) {
+  const idea = find(id);
+  if (!idea) return;
+  state.ideas = [idea, ...state.ideas.filter(i => i !== idea)];
+  persist();
+  render();
+}
+
 /* ── Drag to reorder (top of the list = what Claude builds next) ── */
 function onDragStart(e, id) {
   dragging = id;
@@ -108,6 +117,7 @@ function onDragEnd() {
 const iconPlus = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6.5" y1="1.5" x2="6.5" y2="11.5"/><line x1="1.5" y1="6.5" x2="11.5" y2="6.5"/></svg>`;
 const iconTrash = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,3 12,3"/><path d="M5,3V2h3v1"/><path d="M2,3l1,9h7l1-9"/><line x1="5" y1="6" x2="5" y2="9"/><line x1="8" y1="6" x2="8" y2="9"/></svg>`;
 const iconNotes = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="3" x2="11" y2="3"/><line x1="2" y1="6.5" x2="11" y2="6.5"/><line x1="2" y1="10" x2="7.5" y2="10"/></svg>`;
+const iconTop = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="1.75" x2="11" y2="1.75"/><line x1="6.5" y1="4.5" x2="6.5" y2="11.5"/><polyline points="3.5,7.5 6.5,4.5 9.5,7.5"/></svg>`;
 const iconGrip = `<svg width="10" height="14" viewBox="0 0 10 14"><g fill="currentColor"><circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/><circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/><circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/></g></svg>`;
 
 function shortDate(iso) {
@@ -124,9 +134,11 @@ function renderIdea(idea, index) {
         <textarea class="idea-text" rows="1"
           oninput="autoGrow(this)" onchange="setField('${idea.id}','text',this.value.trim()||'Untitled')"
           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${escapeHtml(idea.text)}</textarea>
-        ${index === 0 ? '<span class="idea-next">Next up</span>' : ''}
-        <button class="icon-btn ${idea.notes ? 'active' : 'reveal-on-hover'}" title="Details for Claude" onclick="toggleNotes('${idea.id}')">${iconNotes}</button>
-        <button class="icon-btn del reveal-on-hover" title="Delete idea" onclick="deleteIdea('${idea.id}')">${iconTrash}</button>
+        ${index === 0
+          ? '<span class="idea-next">Next up</span>'
+          : `<button class="icon-btn reveal-on-hover" title="Move to top" aria-label="Move to top" onclick="moveToTop('${idea.id}')">${iconTop}</button>`}
+        <button class="icon-btn ${idea.notes ? 'active' : 'reveal-on-hover'}" title="Details for Claude" aria-label="Details for Claude" onclick="toggleNotes('${idea.id}')">${iconNotes}</button>
+        <button class="icon-btn del reveal-on-hover" title="Delete idea" aria-label="Delete idea" onclick="deleteIdea('${idea.id}')">${iconTrash}</button>
       </div>
       ${notesOpen ? `
         <textarea class="idea-notes" rows="2" placeholder="Details for Claude — what's annoying, what you'd expect, examples…"
