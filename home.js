@@ -1,5 +1,6 @@
 /* ─────────────────────────────────────────────
-   Home: quick capture into To Do's, open ideas count, app password
+   Home: quick capture into To Do's, today's to-do glance, review status,
+   open ideas count, app password
 ───────────────────────────────────────────── */
 const TODOS_KEY = 'personal-os-todos-v1';
 const IDEAS_KEY = 'personal-os-ideas-v1';
@@ -14,8 +15,14 @@ function setMsg(id, text) {
   el._t = setTimeout(() => { el.textContent = ''; }, 3000);
 }
 
-async function loadBlocks() {
-  renderBlocks(await loadState(TODOS_KEY, {}));
+async function loadTodos() {
+  renderTodos(await loadState(TODOS_KEY, {}));
+}
+
+function renderTodos(todos) {
+  renderBlocks(todos);
+  renderTodosGlance(todos);
+  renderReviewStatus(todos);
 }
 
 function renderBlocks(todos) {
@@ -26,6 +33,40 @@ function renderBlocks(todos) {
   select.innerHTML = blocks.map(b =>
     `<option value="${escapeHtml(b.id)}" ${b.id === last ? 'selected' : ''}>${escapeHtml(b.name)}</option>`).join('');
   document.getElementById('home-capture').hidden = !blocks.length;
+}
+
+// Same rules as To Do's Summary: planned today, slipped (planned for a past day),
+// due today/tomorrow or overdue — open items only, Today and Follow-ups.
+function renderTodosGlance(todos) {
+  const el = document.getElementById('home-todos-desc');
+  if (!el.dataset.defaultText) el.dataset.defaultText = el.textContent;
+  const today = todayISO(), tomorrow = addDaysISO(today, 1);
+  let planned = 0, slipped = 0, due = 0;
+  (todos.blocks || []).forEach(b => ['today', 'followups'].forEach(section =>
+    (Array.isArray(b[section]) ? b[section] : []).forEach(i => {
+      if (i.plannedFor === today) planned++;
+      if (isBehind(i)) slipped++;
+      if (i.dueDate && i.dueDate <= tomorrow) due++;
+    })));
+  const parts = [];
+  if (planned) parts.push(`${planned} planned today`);
+  if (slipped) parts.push(`<span class="hot">${slipped} slipped</span>`);
+  if (due) parts.push(`${due} due soon`);
+  if (parts.length) el.innerHTML = parts.join(' · ');
+  else el.textContent = el.dataset.defaultText;
+}
+
+// Mirrors needsReview() in todos.js: a weekend review counts for the week after.
+function renderReviewStatus(todos) {
+  const el = document.getElementById('home-review-desc');
+  if (!el.dataset.defaultText) el.dataset.defaultText = el.textContent;
+  const last = todos.lastReviewAt;
+  if (!last || planWeekStartISO(last) < planWeekStartISO()) {
+    const week = parseISODate(planWeekStartISO()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    el.innerHTML = `<span class="hot">Not done for the week of ${week} yet</span>`;
+  } else {
+    el.textContent = el.dataset.defaultText;
+  }
 }
 
 async function captureTodo() {
@@ -70,7 +111,7 @@ async function savePassword() {
   setMsg('home-password-msg', error ? error.message : 'Password saved.');
 }
 
-loadBlocks();
+loadTodos();
 loadIdeasCount();
-watchState(TODOS_KEY, {}, renderBlocks);
+watchState(TODOS_KEY, {}, renderTodos);
 watchState(IDEAS_KEY, {}, renderIdeasCount);
