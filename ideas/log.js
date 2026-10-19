@@ -8,6 +8,6 @@ window.IDEAS_LOG = [
     title: "To Do's: show which items are lingering",
     summary: "Items the Summary counts as lingering now say so under their text (\"Lingering · open 30d\" or \"Lingering · pushed 2×\"), linking to Review.",
     ideaId: null,
-    pr: '',
+    pr: 'https://github.com/coppensdc/personal-os/pull/9',
   },
 ];
