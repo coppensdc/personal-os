@@ -11,7 +11,25 @@ async function boot() {
 }
 
 function persist() {
+  clearTimeout(persistTimer);
+  persistTimer = null;
   saveState(STORAGE_KEY, state);
+}
+
+// Typing saves after a short pause instead of on every keystroke: each save
+// upserts the whole blob, and many overlapping upserts can land out of order,
+// leaving an older copy of the note as the saved one. Flushed on blur and when
+// the page is hidden or closed, so nothing waits on the timer.
+const TYPING_SAVE_MS = 800;
+let persistTimer = null;
+
+function persistSoon() {
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(persist, TYPING_SAVE_MS);
+}
+
+function flushPersist() {
+  if (persistTimer) persist();
 }
 
 // Pre-formatting notes were saved as plain text with real newlines. Anything
@@ -93,7 +111,7 @@ function onEditorInput(el) {
   if (!sec) return;
   sec.html = el.innerHTML;
   sec.updatedAt = new Date().toISOString();
-  persist();
+  persistSoon();
   const label = document.querySelector(`.notepad-section[data-id="${sec.id}"] .notepad-section-edited`);
   if (label) label.textContent = formatEdited(sec.updatedAt);
 }
@@ -236,7 +254,7 @@ function renderSection(sec) {
         <div class="notepad-editor" contenteditable="true" data-id="${sec.id}"
           data-placeholder="Write anything…"
           oninput="onEditorInput(this)" onkeydown="onEditorKeydown(event)" onpointerdown="lastSelectionText=''" onkeyup="updateToolbarState()" onmouseup="updateToolbarState()"
-          onblur="updateToolbarState()">${sec.html}</div>
+          onblur="flushPersist(); updateToolbarState()">${sec.html}</div>
       ` : ''}
     </section>
   `;
@@ -445,6 +463,11 @@ document.addEventListener('selectionchange', () => {
   if (text.trim()) lastSelectionText = text;
 });
 
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushPersist();
+});
+window.addEventListener('pagehide', flushPersist);
+
 /* ─────────────────────────────────────────────
    Boot
 ───────────────────────────────────────────── */
@@ -453,4 +476,4 @@ watchState(STORAGE_KEY, {}, fresh => {
   state = fresh;
   migrateToSections();
   render();
-}, { isBusy: () => pageIsBusy() || !!sectionDragging });
+}, { isBusy: () => pageIsBusy() || !!sectionDragging || !!persistTimer });
