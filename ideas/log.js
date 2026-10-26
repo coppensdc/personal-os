@@ -8,6 +8,6 @@ window.IDEAS_LOG = [
     title: 'Notepad saves once you pause typing',
     summary: 'Notepad now saves a moment after you stop typing (and right away when you click out or leave the page) instead of on every keystroke, so a fast burst of typing can no longer end up saved slightly out of date.',
     ideaId: null,
-    pr: '',
+    pr: 'https://github.com/coppensdc/personal-os/pull/10',
   },
 ];
