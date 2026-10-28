@@ -920,8 +920,14 @@ function renderItemMeta(item, section) {
     if (days >= 1) parts.push(`<span class="${days >= WAITING_NUDGE_DAYS ? 'stale' : ''}">${days}d</span>`);
     if (plan) parts.push(plan);
     if (item.dueDate) parts.push(`<span class="${isDueSoon(item.dueDate) ? 'stale' : ''}">${formatDueLabel(item.dueDate)}</span>`);
-  } else if (plan) {
-    parts.push(plan);
+  } else {
+    if (plan) parts.push(plan);
+    // Same rule as the Summary's "N lingering" count, so you can see which ones it means.
+    if (isLingering(item)) {
+      const pushes = item.deferCount || 0;
+      const why = pushes >= LINGER_PUSHES ? `pushed ${pushes}×` : `open ${itemAgeDays(item)}d`;
+      parts.push(`<a class="stale todo-meta-link" href="../review/index.html" title="Decide on it in Review">Lingering · ${why}</a>`);
+    }
   }
   if (!parts.length) return '';
   return `<div class="todo-followup-meta">${parts.join('<span class="sep">·</span>')}</div>`;
