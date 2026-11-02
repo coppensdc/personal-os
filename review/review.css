@@ -36,6 +36,8 @@
 }
 .review-text-wrap { flex: 1; min-width: 0; }
 .review-text { font-size: .875rem; font-weight: 300; color: var(--text); line-height: 1.45; overflow-wrap: anywhere; }
+a.review-text { display: block; text-decoration: none; transition: color var(--transition); }
+.review-row a.review-text:hover { color: var(--accent); }
 .review-row.planned .review-text { color: var(--text-2); }
 .review-meta {
   display: flex;

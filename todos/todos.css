@@ -804,3 +804,7 @@
 
 /* Pushed to next week (from Review or the item menu) — still listed, just quieter */
 .todo-item.pushed .todo-text { color: var(--text-3); }
+
+/* Arrived from Review (todos/index.html#item-<id>) — brief coral wash on that row.
+   Same specificity as the zebra-stripe rule above, so it must stay after it. */
+.todo-list > .todo-item.flash > .todo-row { background: var(--accent-dim); }
