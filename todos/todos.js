@@ -838,6 +838,23 @@ function jumpToBlock(colKey) {
   setTimeout(() => el.classList.remove('flash'), 900);
 }
 
+// Review links each row here as todos/index.html#item-<id>: scroll to that to-do and
+// flash it. Opens a collapsed Follow-ups list if that's where it is, then drops the
+// hash so a reload doesn't jump again.
+function jumpToItemFromHash() {
+  const m = location.hash.match(/^#item-(.+)$/);
+  if (!m) return;
+  const id = decodeURIComponent(m[1]);
+  history.replaceState(null, '', location.pathname + location.search);
+  const block = state.blocks.find(b => (b.followups || []).some(i => i.id === id));
+  if (block && !block.followupsOpen) { block.followupsOpen = true; persist(); render(); }
+  const el = document.querySelector(`.todo-list > .todo-item[data-id="${CSS.escape(id)}"]`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 1600);
+}
+
 /* ─────────────────────────────────────────────
    Auto-growing text (lets to-do text wrap instead of truncating)
 ───────────────────────────────────────────── */
@@ -1306,7 +1323,8 @@ function render() {
 /* ─────────────────────────────────────────────
    Boot
 ───────────────────────────────────────────── */
-boot().then(render);
+boot().then(render).then(jumpToItemFromHash);
+window.addEventListener('hashchange', jumpToItemFromHash);
 // Mark-done modal and drags hold item ids across renders — wait for them to finish.
 watchState(STORAGE_KEY, DEFAULT_STATE, fresh => {
   state = fresh;

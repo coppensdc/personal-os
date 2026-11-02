@@ -1,7 +1,8 @@
 /* ─────────────────────────────────────────────
    Review — do it any time (Monday is the default). Give open to-dos a day this
    week, push the rest to next week, re-plan what slipped, decide on what's been
-   lingering, and go through Follow-ups. Writes only plan fields (see
+   lingering, and go through Follow-ups. Clicking an item's text opens it in
+   To Do's (todos/index.html#item-<id>) to edit or complete it. Writes only plan fields (see
    shared/js/plan.js), lastReviewAt, and — for lingering items — deletes, into
    To Do's own blob; To Do's Summary reads all of it.
 ───────────────────────────────────────────── */
@@ -164,7 +165,8 @@ function renderRow(entry, opts) {
   return `
     <div class="review-row row ${planned ? 'planned' : ''}">
       <div class="review-text-wrap">
-        <div class="review-text">${escapeHtml(item.text)}</div>
+        <a class="review-text" href="../todos/index.html#item-${encodeURIComponent(item.id)}"
+           title="Open in To Do's">${escapeHtml(item.text)}</a>
         ${renderMeta(entry, opts)}
       </div>
       <div class="review-actions">${actions}</div>
