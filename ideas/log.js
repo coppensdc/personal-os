@@ -8,6 +8,6 @@ window.IDEAS_LOG = [
     title: "Review: open a to-do in To Do's",
     summary: "Clicking an item's text on the Review page now opens To Do's scrolled to that item with a brief highlight, so you can edit, complete or add notes to it without hunting for it.",
     ideaId: null,
-    pr: '',
+    pr: 'https://github.com/coppensdc/personal-os/pull/11',
   },
 ];
