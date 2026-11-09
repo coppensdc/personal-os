@@ -5,5 +5,5 @@
 window.IDEAS_LOG = [
   { date: '2026-11-09', title: "Home: quick captures in a row no longer overwrite each other",
     summary: "Adding several to-dos quickly from Home now saves every one of them instead of only the last, and the box clears straight away so you can type the next.",
-    ideaId: null, pr: '' },
+    ideaId: null, pr: 'https://github.com/coppensdc/personal-os/pull/12' },
 ];
