@@ -28,25 +28,69 @@ function renderBlocks(todos) {
   document.getElementById('home-capture').hidden = !blocks.length;
 }
 
-async function captureTodo() {
+// Captures queue up and are written one batch at a time. Each write re-reads the
+// whole To Do's blob and saves it back, so two overlapping captures (Enter twice
+// in quick succession on a slow phone connection) used to both read the same
+// copy, and the second save silently dropped the first to-do.
+const captureQueue = [];
+let captureRunning = false;
+
+function captureTodo() {
   const input = document.getElementById('home-capture-input');
   const text = input.value.trim();
   if (!text) return;
   const blockId = document.getElementById('home-capture-block').value;
-  // Re-read at submit time so a to-do added elsewhere since page load isn't lost.
-  const todos = await loadState(TODOS_KEY, {});
-  const block = (todos.blocks || []).find(b => b.id === blockId);
-  if (!block) { setMsg('home-capture-msg', 'That block no longer exists — reload.'); return; }
-  if (!Array.isArray(block.today)) block.today = [];
-  block.today.unshift({
-    id: uid(), text, complete: false, priority: false, waiting: false, dueDate: null,
-    notes: '', subtasks: [], subtasksOpen: false, createdAt: new Date().toISOString(),
-  });
-  saveState(TODOS_KEY, todos);
-  try { localStorage.setItem(LAST_BLOCK_KEY, blockId); } catch (e) {}
-  input.value = '';
+  input.value = ''; // clear straight away so the next to-do can be typed while this one saves
   input.focus();
-  setMsg('home-capture-msg', `Added to ${block.name}`);
+  captureQueue.push({ text, blockId });
+  drainCaptures();
+}
+
+// Wait for our own earlier saves to land, so the re-read below includes them.
+// `savesInFlight` is storage.js's per-key counter (read only, never written here).
+async function waitForOwnSaves() {
+  for (let i = 0; i < 200 && savesInFlight[TODOS_KEY] > 0; i++) {
+    await new Promise(r => setTimeout(r, 50));
+  }
+}
+
+async function drainCaptures() {
+  if (captureRunning) return;
+  captureRunning = true;
+  try {
+    while (captureQueue.length) {
+      await waitForOwnSaves();
+      const batch = captureQueue.splice(0);
+      // Re-read at write time so a to-do added elsewhere since page load isn't lost.
+      const todos = await loadState(TODOS_KEY, {});
+      const added = [], missing = [];
+      batch.forEach(({ text, blockId }) => {
+        const block = (todos.blocks || []).find(b => b.id === blockId);
+        if (!block) { missing.push(text); return; }
+        if (!Array.isArray(block.today)) block.today = [];
+        block.today.unshift({
+          id: uid(), text, complete: false, priority: false, waiting: false, dueDate: null,
+          notes: '', subtasks: [], subtasksOpen: false, createdAt: new Date().toISOString(),
+        });
+        added.push(block.name);
+        try { localStorage.setItem(LAST_BLOCK_KEY, blockId); } catch (e) {}
+      });
+      if (added.length) saveState(TODOS_KEY, todos);
+      if (missing.length) {
+        // Put the text back rather than lose it.
+        const input = document.getElementById('home-capture-input');
+        input.value = [missing.join(' '), input.value].filter(Boolean).join(' ');
+        setMsg('home-capture-msg', 'That block no longer exists — reload.');
+      } else if (added.length === 1) {
+        setMsg('home-capture-msg', `Added to ${added[0]}`);
+      } else {
+        const names = [...new Set(added)];
+        setMsg('home-capture-msg', `Added ${added.length} to-dos to ${names.join(' and ')}`);
+      }
+    }
+  } finally {
+    captureRunning = false;
+  }
 }
 
 async function loadIdeasCount() {
