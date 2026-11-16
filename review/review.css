@@ -89,7 +89,7 @@
 .review-hint-row .review-hint { margin: 0; flex: 1; }
 .review-bulk { font-size: .75rem; margin-left: auto; }
 
-/* Pushed items — collapsed by default; only "Bring back" on each row */
+/* Pushed items — open by default, collapse remembered per device; only "Bring back" on each row */
 .review-pushed { margin-bottom: 2rem; }
 .review-pushed summary {
   cursor: pointer;
