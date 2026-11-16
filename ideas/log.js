@@ -8,6 +8,6 @@ window.IDEAS_LOG = [
     title: 'Review: "Pushed to next week" stays collapsed',
     summary: 'Collapsing the pushed list on Review now sticks — it no longer pops back open every time you plan an item or the page syncs, and it is remembered on each device.',
     ideaId: null,
-    pr: '',
+    pr: 'https://github.com/coppensdc/personal-os/pull/13',
   },
 ];
