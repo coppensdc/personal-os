@@ -11,6 +11,18 @@ const OPEN_SECTIONS = ['today', 'followups'];
 
 let todos;
 
+// "Pushed to next week" open/closed — per-device UI state, so it lives in
+// localStorage, not the To Do's blob. Without this every re-render (any plan
+// click, a live-sync refresh) would spring a collapsed list back open.
+const PUSHED_OPEN_KEY = 'personal-os-review-pushed-open';
+let pushedOpen = true;
+try { pushedOpen = localStorage.getItem(PUSHED_OPEN_KEY) !== '0'; } catch (e) {}
+
+function onPushedToggle(el) {
+  pushedOpen = el.open;
+  try { localStorage.setItem(PUSHED_OPEN_KEY, pushedOpen ? '1' : '0'); } catch (e) {}
+}
+
 async function boot() {
   todos = await loadState(TODOS_KEY, {});
   normalize();
@@ -265,7 +277,7 @@ function render() {
       followups, { days, showBlock: 'plain' }, 'Nothing waiting on anyone')}
 
     ${pushed.length ? `
-      <details class="review-pushed" open>
+      <details class="review-pushed" ${pushedOpen ? 'open' : ''} ontoggle="onPushedToggle(this)">
         <summary>Pushed to next week <span class="section-count">${pushed.length}</span></summary>
         <div class="review-list">${pushed.map(e => renderRow(e, { days, showBlock: true, pushed: true })).join('')}</div>
       </details>
