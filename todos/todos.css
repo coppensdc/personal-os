@@ -787,6 +787,11 @@
 
   .todo-check { width: 21px; height: 21px; }
   .todo-check.checked::after { width: 9px; height: 6px; }
+
+  /* HTML5 drag-and-drop never fires on touch, so these grips can't do anything
+     there — hide them (as Notepad and Ideas do) instead of showing dead controls */
+  .todo-important-handle,
+  .todo-block-handle { display: none; }
 }
 
 /* ── Follow-up meta line — age goes coral once it's worth chasing, due date once it's near ── */
