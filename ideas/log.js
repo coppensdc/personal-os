@@ -8,6 +8,6 @@ window.IDEAS_LOG = [
     title: "To Do's: hide drag grips that don't work on phones",
     summary: "On your phone, the grip handles on Summary's Flagged rows and on each block header are gone — dragging never worked on touch, so they were dead buttons that also pushed Flagged rows out of line.",
     ideaId: null,
-    pr: '',
+    pr: 'https://github.com/coppensdc/personal-os/pull/14',
   },
 ];
